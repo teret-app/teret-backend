@@ -1,0 +1,278 @@
+[
+  {
+    "id": 19,
+    "shipmentId": 17,
+    "senderId": 13,
+    "carrierId": 3,
+    "amount": 380,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "bidHistory": [
+      {
+        "amount": 380,
+        "createdAt": "2026-04-30T13:25:16.765Z"
+      }
+    ],
+    "createdAt": "2026-04-30T13:25:16.765Z",
+    "updatedAt": "2026-04-30T13:27:07.490Z"
+  },
+  {
+    "id": 18,
+    "shipmentId": 5,
+    "senderId": null,
+    "carrierId": 3,
+    "amount": 150,
+    "status": "active",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "bidHistory": [
+      {
+        "amount": 190,
+        "createdAt": "2026-04-30T13:12:44.765Z"
+      },
+      {
+        "amount": 170,
+        "createdAt": "2026-04-30T13:13:39.134Z"
+      },
+      {
+        "amount": 150,
+        "createdAt": "2026-04-30T13:14:59.547Z"
+      }
+    ],
+    "createdAt": "2026-04-30T13:12:44.765Z",
+    "updatedAt": "2026-04-30T13:14:59.547Z"
+  },
+  {
+    "id": 17,
+    "shipmentId": 5,
+    "senderId": null,
+    "carrierId": 12,
+    "amount": 140,
+    "status": "active",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "bidHistory": [
+      {
+        "amount": 200,
+        "createdAt": "2026-04-30T13:11:23.629Z"
+      },
+      {
+        "amount": 180,
+        "createdAt": "2026-04-30T13:13:11.769Z"
+      },
+      {
+        "amount": 160,
+        "createdAt": "2026-04-30T13:14:35.247Z"
+      },
+      {
+        "amount": 140,
+        "createdAt": "2026-04-30T13:15:43.242Z"
+      }
+    ],
+    "createdAt": "2026-04-30T13:11:23.629Z",
+    "updatedAt": "2026-04-30T13:15:43.242Z"
+  },
+  {
+    "id": 16,
+    "shipmentId": 11,
+    "senderId": 2,
+    "carrierId": 11,
+    "amount": 180,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "bidHistory": [
+      {
+        "amount": 180,
+        "createdAt": "2026-04-30T11:58:44.503Z"
+      }
+    ],
+    "createdAt": "2026-04-30T11:58:44.503Z",
+    "updatedAt": "2026-04-30T12:10:22.754Z"
+  },
+  {
+    "id": 15,
+    "shipmentId": 10,
+    "senderId": 2,
+    "carrierId": 3,
+    "amount": 280,
+    "status": "rejected",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "bidHistory": [
+      {
+        "amount": 280,
+        "createdAt": "2026-04-30T11:56:37.802Z"
+      }
+    ],
+    "createdAt": "2026-04-30T11:56:37.802Z",
+    "updatedAt": "2026-04-30T12:08:23.592Z"
+  },
+  {
+    "id": 14,
+    "shipmentId": 10,
+    "senderId": 2,
+    "carrierId": 11,
+    "amount": 275,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-29T10:15:37.696Z",
+    "updatedAt": "2026-04-30T12:08:23.592Z",
+    "bidHistory": [
+      {
+        "amount": 300,
+        "createdAt": "2026-04-29T10:15:37.696Z"
+      },
+      {
+        "amount": 275,
+        "createdAt": "2026-04-30T11:59:51.400Z"
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "shipmentId": 15,
+    "senderId": 2,
+    "carrierId": 11,
+    "amount": 420,
+    "status": "rejected",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-29T10:09:28.882Z",
+    "updatedAt": "2026-04-29T10:12:03.807Z"
+  },
+  {
+    "id": 12,
+    "shipmentId": 16,
+    "senderId": 2,
+    "carrierId": 9,
+    "amount": 295,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-27T15:30:10.741Z",
+    "updatedAt": "2026-04-27T15:30:50.905Z"
+  },
+  {
+    "id": 11,
+    "shipmentId": 16,
+    "senderId": 2,
+    "carrierId": 8,
+    "amount": 300,
+    "status": "rejected",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-27T09:08:47.726Z",
+    "updatedAt": "2026-04-27T15:30:50.906Z"
+  },
+  {
+    "id": 10,
+    "shipmentId": 15,
+    "senderId": 2,
+    "carrierId": 3,
+    "amount": 400,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-27T07:12:00.797Z",
+    "updatedAt": "2026-04-29T10:12:03.807Z"
+  },
+  {
+    "id": 9,
+    "shipmentId": 14,
+    "senderId": 2,
+    "carrierId": 3,
+    "amount": 200,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-24T20:13:08.922Z",
+    "updatedAt": "2026-04-24T20:13:56.193Z"
+  },
+  {
+    "id": 8,
+    "shipmentId": 12,
+    "senderId": 2,
+    "carrierId": 7,
+    "amount": 250,
+    "status": "accepted",
+    "contactUnlocked": false,
+    "commissionPaid": false,
+    "createdAt": "2026-04-23T19:28:07.509Z",
+    "updatedAt": "2026-04-23T19:28:41.411Z"
+  },
+  {
+    "id": 7,
+    "shipmentId": 12,
+    "carrierId": 3,
+    "amount": 245,
+    "status": "rejected",
+    "createdAt": "2026-04-22T20:02:05.427Z",
+    "updatedAt": "2026-04-23T19:28:41.411Z"
+  },
+  {
+    "id": 6,
+    "shipmentId": 13,
+    "transporterId": 3,
+    "amount": 250,
+    "message": "Vidimo se uskoro \npozdrav",
+    "status": "accepted",
+    "createdAt": "2026-04-22T08:26:50.993Z",
+    "updatedAt": "2026-04-22T08:51:09.121Z"
+  },
+  {
+    "id": 5,
+    "shipmentId": 12,
+    "transporterId": 3,
+    "amount": 250,
+    "message": "",
+    "status": "rejected",
+    "createdAt": "2026-04-19T16:38:44.747Z",
+    "updatedAt": "2026-04-23T19:28:41.411Z"
+  },
+  {
+    "id": 4,
+    "shipmentId": 11,
+    "transporterId": 3,
+    "amount": 200,
+    "message": "",
+    "status": "rejected",
+    "createdAt": "2026-04-19T13:31:02.939Z",
+    "updatedAt": "2026-04-30T12:10:22.754Z"
+  },
+  {
+    "id": 1,
+    "shipment_id": 2,
+    "transporter_id": 6,
+    "transporter_name": "",
+    "transporter_email": "kamion@test.com",
+    "transporter_phone": "096323323",
+    "price": 120,
+    "message": "",
+    "status": "accepted",
+    "created_at": "2026-04-06T19:58:20.733Z",
+    "updated_at": "2026-04-06T20:00:46.390Z"
+  },
+  {
+    "id": 2,
+    "shipment_id": 5,
+    "carrier_id": 6,
+    "amount": 250,
+    "message": "",
+    "status": "pending",
+    "created_at": "2026-04-10T20:09:22.503Z",
+    "updated_at": "2026-04-10T20:09:22.503Z"
+  },
+  {
+    "id": 3,
+    "shipment_id": 3,
+    "carrier_id": 6,
+    "amount": 300,
+    "message": "",
+    "status": "pending",
+    "created_at": "2026-04-11T21:15:56.039Z",
+    "updated_at": "2026-04-11T21:15:56.039Z"
+  }
+]

@@ -1,0 +1,138 @@
+[
+  {
+    "id": 1,
+    "fullName": "Test Korisnik",
+    "companyName": "Test obrt",
+    "email": "test123@test.com",
+    "phone": "0911111111",
+    "password": "$2a$10$V/QpYopvrXChg4xUkNAHvOddD590bX2vxJYXLUHyChw2YVinBdYia",
+    "role": "sender",
+    "createdAt": "2026-04-14T20:00:31.804Z"
+  },
+  {
+    "id": 2,
+    "fullName": "Mladen Petrović",
+    "companyName": "MEGS obrt",
+    "email": "mladen@test.com",
+    "phone": "0913658897",
+    "password": "$2a$10$ywmR0QZmzSz86Sd9eMDMlu9UnTgSHK4BchrkW9EmlxLsPZlMhisJC",
+    "role": "sender",
+    "createdAt": "2026-04-15T20:04:20.760Z"
+  },
+  {
+    "id": 3,
+    "fullName": "Mladen Petrović",
+    "companyName": "Kamion",
+    "email": "kamion@test.com",
+    "phone": "0958358315",
+    "password": "$2a$10$AIrF.fUeQ6awhPLlsFMN6uODpyAcUcIyij7I2lYveUgVawmiPbdpS",
+    "role": "transporter",
+    "createdAt": "2026-04-15T20:08:28.712Z"
+  },
+  {
+    "id": 4,
+    "fullName": "Ivan Marić",
+    "companyName": "htr",
+    "phone": "090555444",
+    "email": "novi@test.com",
+    "password": "$2a$10$KuquJVPgTSRCMsCeYJN8veafrmazOuJRv4fGQzRc.p9fKL0yGaZY2",
+    "role": "sender",
+    "ime": "Ivan Marić",
+    "naziv_tvrtke": "htr",
+    "broj_mobitela": "090555444",
+    "createdAt": "2026-04-22T19:33:29.223Z"
+  },
+  {
+    "id": 5,
+    "fullName": "Milan Milan",
+    "companyName": "Griz",
+    "phone": "095900300",
+    "email": "ella@test.com",
+    "password": "$2a$10$HSgQjgNlVyL8/o0LmMTcWeB8g95Jx3Ol9QhJOnbE4J/qUOvObtore",
+    "role": "carrier",
+    "ime": "Milan Milan",
+    "naziv_tvrtke": "Griz",
+    "broj_mobitela": "095900300",
+    "createdAt": "2026-04-22T19:35:18.071Z"
+  },
+  {
+    "id": 6,
+    "fullName": "Mile Mile",
+    "companyName": "Sdt",
+    "email": "asus@test.com",
+    "phone": "092800800",
+    "password": "$2a$10$daaO1g3H3Q7d.AMTC7XhbOqIgKMDAMbpuitLrKZq4JWjAB0Y1.jgG",
+    "role": "carrier",
+    "createdAt": "2026-04-23T19:22:42.697Z"
+  },
+  {
+    "id": 7,
+    "fullName": "Pedro Perić",
+    "companyName": "Bolan",
+    "email": "pedro@test.com",
+    "phone": "0992255778",
+    "password": "$2a$10$XUCpxEvHg05/W0ft8jjx.ubn/ABpgOZxCG/5Qi91ZfOpSaOtpfzMe",
+    "role": "carrier",
+    "createdAt": "2026-04-23T19:27:26.177Z"
+  },
+  {
+    "id": 8,
+    "fullName": "Danko Končar",
+    "companyName": "Drvo Doo",
+    "email": "drvo@test.com",
+    "phone": "095633633",
+    "password": "$2a$10$oDS314WU8SNc/OkeOInuxu8bWXkhEZ8roWTvXJ0Q9z3i/FPj5u6da",
+    "role": "carrier",
+    "createdAt": "2026-04-27T09:08:11.234Z"
+  },
+  {
+    "id": 9,
+    "fullName": "Samo samo",
+    "companyName": "samo",
+    "email": "samo@test.com",
+    "phone": "095258258",
+    "password": "$2a$10$NCkULmuSp/R.SZAu.bADT.PfTpuZpcSIh0Qv/5b8.5b29iNb.1Y3S",
+    "role": "carrier",
+    "createdAt": "2026-04-27T15:29:19.120Z"
+  },
+  {
+    "id": 10,
+    "fullName": "Mato Lovrak",
+    "companyName": "Trust",
+    "email": "trust@test.com",
+    "phone": "095201201",
+    "password": "$2a$10$8TUAyH4YXMe8.qywwfTwQ.c8v0c6luUfpghwNIb1p4AlbAaYqSPua",
+    "role": "carrier",
+    "createdAt": "2026-04-27T16:20:14.937Z"
+  },
+  {
+    "id": 11,
+    "fullName": "Kombi prijevoz",
+    "companyName": "Kombi tovar",
+    "email": "komb1@test.com",
+    "phone": "095321123",
+    "password": "$2a$10$iAsKd5d32Jkoo7reWT84BuBq4Qs1nqURTGGN0ABTY6.VE4Rj3U9ja",
+    "role": "carrier",
+    "createdAt": "2026-04-29T10:08:55.575Z"
+  },
+  {
+    "id": 12,
+    "fullName": "Pero Perić",
+    "companyName": "Ludara",
+    "email": "ludov@test.com",
+    "phone": "095800100",
+    "password": "$2a$10$xEgt4n0cdqulcYrQmmfKf.4HitwAF0eYTeCsiNGD7Em/13F/fFPDa",
+    "role": "carrier",
+    "createdAt": "2026-04-30T13:10:58.702Z"
+  },
+  {
+    "id": 13,
+    "fullName": "Slavko Goluža",
+    "companyName": "Kvisko",
+    "email": "kvisko@test.com",
+    "phone": "098656656",
+    "password": "$2a$10$S.dlLynPxwFBCkJuorq7Ce5JqBA4WUQ5PubAFUzHSKM3LavjEHFYO",
+    "role": "sender",
+    "createdAt": "2026-04-30T13:20:32.581Z"
+  }
+]
