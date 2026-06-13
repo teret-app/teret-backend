@@ -53,7 +53,9 @@ async function sendVerificationEmail(email, verificationUrl) {
   }
 }
 try {
-  const serviceAccount = require('./firebase-service-account.json');
+  const serviceAccount = JSON.parse(
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+  );
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
