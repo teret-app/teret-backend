@@ -742,7 +742,7 @@ app.post('/register', async (req, res) => {
       res.status(201).json({
         message:
           'Registracija uspješna. Poslali smo vam email za potvrdu računa.',
-        verificationUrl,
+
         user: {
           id: newUser.id,
           fullName: newUser.fullName,
