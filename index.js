@@ -375,7 +375,12 @@ function addOutbidNotifications({ offers, shipment, currentCarrierId, currentOff
 
   outbidOffers.forEach((offer) => {
     const carrierId = Number(offer.carrierId);
+  const users = readJson(usersFile);
+  const carrierUser = users.find((u) => Number(u.id) === carrierId);
 
+  if (!carrierUser || !isCarrierRole(carrierUser.role)) {
+  return;
+}
     if (notifiedCarrierIds.has(carrierId)) return;
 
     notifiedCarrierIds.add(carrierId);
