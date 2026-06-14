@@ -813,7 +813,15 @@ app.post('/login', async (req, res) => {
     console.log('LOGIN BODY:', req.body);
 
     const users = readJson(usersFile);
-
+  console.log('BROJ KORISNIKA:', users.length);
+  console.log(
+  'EMAILOVI U BAZI:',
+  users.map((u) => ({
+    id: u.id,
+    email: u.email,
+    emailVerified: u.emailVerified,
+  }))
+);
     const email = normalizeString(req.body.email).toLowerCase();
     const password = String(req.body.password || '');
 
@@ -822,6 +830,8 @@ app.post('/login', async (req, res) => {
     }
 
     const user = users.find((u) => normalizeString(u.email).toLowerCase() === email);
+    console.log('LOGIN TRAŽI EMAIL:', email);
+    console.log('LOGIN USER PRONAĐEN:', !!user);
     if (!user) {
       return res.status(401).json({ message: 'Pogrešan email ili lozinka.' });
     }
