@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -74,7 +76,43 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
+app.post('/create-checkout-session', authMiddleware, async (req, res) => {
+  try {
+    const { shipmentId } = req.body;
 
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'TeReT provizija',
+            },
+            unit_amount: 500, // 5.00 €
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${APP_URL}/payment-success`,
+      cancel_url: `${APP_URL}/payment-cancel`,
+      metadata: {
+        carrierId: req.user.id,
+        shipmentId,
+      },
+    });
+
+    res.json({
+      checkoutUrl: session.url,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'Greška pri kreiranju Stripe naplate.',
+    });
+  }
+});
 // ================= PATHS =================
 
 const dataDir = path.join(__dirname, 'data');
@@ -170,7 +208,18 @@ function toNumber(value, fallback = 0) {
 function generateVerificationToken() {
   return crypto.randomBytes(32).toString('hex');
 }
+function normalizeRegion(region) {
+  const value = normalizeString(region).toLowerCase();
 
+  if (value === 'eu') return 'EU';
+  if (value === 'balkan') return 'BALKAN';
+  if (value === 'uk') return 'UK';
+  if (value === 'usa' || value === 'sad') return 'USA';
+  if (value === 'canada' || value === 'kanada') return 'CANADA';
+  if (value === 'australia_nz' || value === 'australija_nz') return 'AUSTRALIA_NZ';
+
+  return 'Evropa';
+}
 function normalizeRole(role) {
   const value = normalizeString(role).toLowerCase();
   if (value === 'transporter') return 'carrier';
@@ -706,7 +755,19 @@ app.post('/register', async (req, res) => {
     const phone = normalizeString(req.body.phone || req.body.telefon);
     const password = String(req.body.password || '');
     const role = normalizeRole(req.body.role);
+    const country = normalizeString(req.body.country);
 
+    let region = 'Evropa';
+
+    if (country === 'Ujedinjeno Kraljevstvo') {
+      region = 'UK';
+    } else if (country === 'SAD') {
+      region = 'USA';
+    } else if (country === 'Kanada') {
+      region = 'CANADA';
+    } else if (country === 'Australija') {
+      region = 'AUSTRALIA_NZ';
+    }
     if (!fullName || !email || !phone || !password || !role) {
       return res.status(400).json({
         message: 'fullName, email, phone, password i role su obavezni.',
@@ -731,6 +792,8 @@ app.post('/register', async (req, res) => {
       companyName,
       email,
       phone,
+      country,
+      region,
       password: hashedPassword,
       role,
       emailVerified: false,
@@ -1091,6 +1154,7 @@ const savedImages = saveShipmentImages(
       treba_pomoc_vozaca: req.body.treba_pomoc_vozaca ?? false,
       slike: savedImages,
       phone: sender.phone || '',
+      region: sender.region || 'Evropa',
       viewsCount: 0,
       viewedBy: [],
       createdAt: nowIso(),
@@ -1124,7 +1188,8 @@ app.get('/shipments', authMiddleware, (req, res) => {
     const ratings = readJson(ratingsFile);
 
     const userId = Number(req.user.id);
-
+    const currentUser = users.find((u) => Number(u.id) === userId);
+    const userRegion = currentUser?.region || 'Evropa';
     const offersByShipmentId = new Map();
 
     offers.forEach((offer) => {
@@ -1151,6 +1216,11 @@ app.get('/shipments', authMiddleware, (req, res) => {
     });
 
     const activeShipments = shipments.filter((shipment) => {
+    const shipmentRegion = shipment.region || 'Evropa';
+
+    if (shipmentRegion !== userRegion) {
+      return false;
+    }
       if (!isVisibleFinishedShipment(shipment)) {
       return false;
     }
@@ -1225,6 +1295,7 @@ const senderRating = getUserRatingSummary(
 
       return {
         ...sanitizeShipmentForViewer(shipment, req.user, offers),
+        slike: [],
         senderId: senderUser ? Number(senderUser.id) : Number(shipment.senderId),
         senderName: senderUser ? senderUser.fullName || 'Naručitelj' : 'Naručitelj',
         senderRatingAverage: senderRating.averageRating,
@@ -1655,7 +1726,7 @@ app.post('/offers', authMiddleware, (req, res) => {
 
     const offers = readJson(offersFile);
     const shipments = readJson(shipmentsFile);
-
+    const currency = req.body.currency || '€';
     const shipmentId = req.body.shipmentId || req.body.shipment_id;
     const amount = req.body.amount || req.body.price;
 
@@ -1715,7 +1786,7 @@ app.post('/offers', authMiddleware, (req, res) => {
 
       if (toNumber(existingMyOffer.amount) - numericAmount < 5) {
         return res.status(400).json({
-          message: 'Minimalno sniženje ponude je 5 €.',
+          message: `Minimalno sniženje ponude je 5 ${currency}.`,
         });
       }
 
@@ -1729,6 +1800,7 @@ app.post('/offers', authMiddleware, (req, res) => {
       }
 
       existingMyOffer.amount = numericAmount;
+      existingMyOffer.currency = currency;
       existingMyOffer.updatedAt = nowIso();
 
       existingMyOffer.bidHistory.push({
@@ -1769,6 +1841,7 @@ app.post('/offers', authMiddleware, (req, res) => {
       senderId: Number(shipment.senderId),
       carrierId: Number(req.user.id),
       amount: numericAmount,
+      currency,
       status: 'active',
       contactUnlocked: false,
       commissionPaid: false,
