@@ -1,9 +1,14 @@
+
+
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Stripe = require('stripe');
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -870,7 +875,56 @@ app.get('/verify-email/:token', (req, res) => {
     res.status(500).json({ message: 'Greška na serveru.' });
   }
 });
+app.post('/resend-verification-email', async (req, res) => {
+  try {
+    const users = readJson(usersFile);
+    const email = normalizeString(req.body.email).toLowerCase();
 
+    if (!email) {
+      return res.status(400).json({
+        message: 'Email je obavezan.',
+      });
+    }
+
+    const user = users.find(
+      (u) => normalizeString(u.email).toLowerCase() === email
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'Korisnik s tom email adresom nije pronađen.',
+      });
+    }
+
+    if (user.emailVerified === true) {
+      return res.json({
+        message: 'Račun je već potvrđen. Možete se prijaviti.',
+      });
+    }
+
+    const verificationToken = generateVerificationToken();
+
+    user.verificationToken = verificationToken;
+    user.verificationEmailSentAt = nowIso();
+
+    writeJson(usersFile, users);
+
+    const verificationUrl = `${APP_URL}/verify-email/${verificationToken}`;
+
+    await sendVerificationEmail(email, verificationUrl);
+
+    res.json({
+      message:
+        'Email za potvrdu je ponovno poslan. Provjerite inbox i spam.',
+    });
+  } catch (error) {
+    console.error('Greška /resend-verification-email:', error);
+
+    res.status(500).json({
+      message: 'Greška na serveru.',
+    });
+  }
+});
 app.post('/login', async (req, res) => {
   try {
     console.log('LOGIN BODY:', req.body);
@@ -907,7 +961,7 @@ app.post('/login', async (req, res) => {
     if (user.emailVerified !== true) {
       return res.status(403).json({
         message:
-          'Račun nije potvrđen. Molimo potvrdite email adresu prije prijave.',
+          'Račun nije potvrđen.',
       });
     }
 
