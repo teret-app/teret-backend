@@ -295,7 +295,7 @@ function saveShipmentImages(base64Images, shipmentId) {
     return `/uploads/shipments/${filename}`;
   });
 }
-const NOTIFICATION_RETENTION_DAYS = 1;
+const NOTIFICATION_RETENTION_DAYS = 7;
 
 function cleanupOldNotifications() {
   try {
@@ -682,7 +682,7 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
 
 // ================= CLEANUP =================
 
-
+const UNVERIFIED_ACCOUNT_RETENTION_HOURS = 48;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function cleanupOldNotifications() {
@@ -740,8 +740,39 @@ function cleanupExpiredShipments() {
 function runCleanup() {
   cleanupOldNotifications();
   cleanupExpiredShipments();
+  cleanupUnverifiedUsers();
 }
+function cleanupUnverifiedUsers() {
+  const users = readJson(usersFile);
 
+  const cutoff =
+    Date.now() -
+    UNVERIFIED_ACCOUNT_RETENTION_HOURS * 60 * 60 * 1000;
+
+  const filteredUsers = users.filter((user) => {
+    if (user.emailVerified === true) {
+      return true;
+    }
+
+    const createdTime = new Date(user.createdAt || 0).getTime();
+
+    if (!Number.isFinite(createdTime)) {
+      return false;
+    }
+
+    return createdTime >= cutoff;
+  });
+
+  if (filteredUsers.length !== users.length) {
+    writeJson(usersFile, filteredUsers);
+
+    console.log(
+      `Cleanup: obrisano ${
+        users.length - filteredUsers.length
+      } nepotvrđenih računa.`
+    );
+  }
+}
 // ================= ROOT =================
 
 app.get('/', (req, res) => {
@@ -1360,6 +1391,22 @@ const senderRating = getUserRatingSummary(
         myOfferAmount: myOffer ? toNumber(myOffer.amount, null) : null,
         myOfferStatus: myOffer ? myOffer.status : null,
         myOfferId: myOffer ? myOffer.id : null,
+        myOfferIsLowest:
+          myOffer && lowestOffer !== null
+            ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
+            : false,
+
+        myOfferIsOutbid:
+          myOffer && lowestOffer !== null
+            ? toNumber(myOffer.amount, 0) > toNumber(lowestOffer, 0)
+            : false,
+
+        myOfferBadge:
+          myOffer && lowestOffer !== null
+            ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
+              ? 'Najniža'
+              : 'Nadmašena'
+            : null,
         ratedUserId,
         ratedUserName: ratedUser ? ratedUser.fullName || '' : '',
         averageRating,
@@ -1762,6 +1809,22 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
       myOfferAmount: myOffer ? toNumber(myOffer.amount, null) : null,
       myOfferStatus: myOffer ? myOffer.status : null,
       myOfferId: myOffer ? myOffer.id : null,
+      myOfferIsLowest:
+        myOffer && lowestOffer !== null
+          ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
+          : false,
+
+      myOfferIsOutbid:
+        myOffer && lowestOffer !== null
+          ? toNumber(myOffer.amount, 0) > toNumber(lowestOffer, 0)
+          : false,
+
+      myOfferBadge:
+        myOffer && lowestOffer !== null
+          ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
+            ? 'Najniža'
+            : 'Nadmašena'
+          : null,
       bidHistory,
     });
   } catch (error) {
@@ -1979,13 +2042,49 @@ app.get('/my-offers', authMiddleware, (req, res) => {
 
 
         const shipment = shipments.find((s) => Number(s.id) === Number(offer.shipmentId));
-        return {
-          ...offer,
-          shipment: shipment || null,
-          offersCount: offers.filter(
-            (o) => Number(o.shipmentId) === Number(shipment?.id)
-          ).length,
-        };
+       const shipmentOffers = offers.filter(
+         (o) =>
+           Number(o.shipmentId) === Number(shipment?.id) &&
+           o.status !== 'rejected'
+       );
+
+       const lowestOffer =
+         shipmentOffers.length > 0
+           ? Math.min(...shipmentOffers.map((o) => toNumber(o.amount, 0)))
+           : null;
+
+    return {
+      ...offer,
+
+      lowestOffer,
+
+      myOfferIsLowest:
+        lowestOffer !== null
+          ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
+          : false,
+
+      myOfferIsOutbid:
+        lowestOffer !== null
+          ? toNumber(offer.amount, 0) > toNumber(lowestOffer, 0)
+          : false,
+
+      myOfferBadge:
+        lowestOffer !== null
+          ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
+            ? 'Najniža'
+            : 'Nadmašena'
+          : null,
+
+      shipment: shipment
+        ? {
+            ...shipment,
+            offersCount: shipmentOffers.length,
+            lowestOffer,
+          }
+        : null,
+
+      offersCount: shipmentOffers.length,
+    };
       });
 
     res.json(myOffers);
