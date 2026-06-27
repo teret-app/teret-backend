@@ -1597,7 +1597,11 @@ app.get('/shipments/:id', authMiddleware, (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: 'Teret nije pronađen.' });
     }
+const shipmentOffers = offers.filter(
+  (o) => Number(o.shipmentId) === Number(shipment.id)
+);
 
+const offersCount = shipmentOffers.length;
     if (isCarrierRole(req.user.role)) {
       if (!Array.isArray(shipment.viewedBy)) {
         shipment.viewedBy = [];
@@ -1737,7 +1741,8 @@ senderRatingsCount: senderRating.ratingsCount,
       viewsCount: Number(shipment.viewsCount) || 0,
       acceptedPrice,
       provizija_iznos: provizijaIznos,
-
+offersCount,
+broj_ponuda: offersCount,
       commissionPaid: acceptedOffer
         ? acceptedOffer.commissionPaid === true
         : false,
@@ -1749,7 +1754,7 @@ senderRatingsCount: senderRating.ratingsCount,
       acceptedTransporterMustPay:
         isAcceptedCarrier &&
         acceptedOffer.contactUnlocked !== true &&
-        acceptedOffer.commissionPaid !== true,
+    acceptedOffer.commissionPaid !== true,
     });
   } catch (error) {
     console.error('Greška /shipments/:id:', error);
