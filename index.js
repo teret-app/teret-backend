@@ -75,6 +75,144 @@ try {
   console.log('⚠️ Firebase init error:', error.message);
 }
 app.use(cors());
+app.post(
+  '/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    if (!stripe) {
+      return res.status(500).send('Stripe nije konfiguriran.');
+    }
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      return res.status(500).send('STRIPE_WEBHOOK_SECRET nije postavljen.');
+    }
+
+    const signature = req.headers['stripe-signature'];
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        webhookSecret
+      );
+    } catch (error) {
+      console.error('Stripe webhook signature error:', error.message);
+      return res.status(400).send(`Webhook error: ${error.message}`);
+    }
+
+    try {
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+
+        const shipmentId = Number(session.metadata?.shipmentId);
+        const carrierId = Number(session.metadata?.carrierId);
+
+        const offers = readJson(offersFile);
+        const shipments = readJson(shipmentsFile);
+
+        const shipment = shipments.find(
+          (s) => Number(s.id) === shipmentId
+        );
+
+        const offer = offers.find(
+          (o) =>
+            Number(o.shipmentId) === shipmentId &&
+            Number(o.carrierId) === carrierId &&
+            (
+              o.status === 'accepted' ||
+              o.status === 'prihvaceno' ||
+              o.status === 'prihvaćeno'
+            )
+        );
+
+        if (!shipment || !offer) {
+          console.log('Stripe webhook: shipment ili offer nisu pronađeni.', {
+            shipmentId,
+            carrierId,
+          });
+
+          return res.json({ received: true });
+        }
+
+        if (offer.contactUnlocked === true) {
+          return res.json({ received: true });
+        }
+
+        offer.commissionPaid = true;
+        offer.contactUnlocked = true;
+        offer.stripeSessionId = session.id;
+        offer.stripePaymentIntentId = session.payment_intent || null;
+        offer.updatedAt = nowIso();
+
+        shipment.contactUnlocked = true;
+        shipment.updatedAt = nowIso();
+
+        writeJson(offersFile, offers);
+        writeJson(shipmentsFile, shipments);
+
+        addNotification({
+          userId: offer.carrierId,
+          type: 'contact_unlocked',
+          title: 'Kontakt je otključan',
+          message: 'Sada možete pristupiti dogovoru.',
+          shipmentId: shipment.id,
+          offerId: offer.id,
+          createdBy: offer.carrierId,
+          meta: {
+            commissionPaid: true,
+            stripeSessionId: session.id,
+          },
+        });
+
+        addNotification({
+          userId: shipment.senderId,
+          type: 'carrier_contact_unlocked',
+          title: 'TeReT vas je povezao',
+          message:
+            'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati.',
+          shipmentId: shipment.id,
+          offerId: offer.id,
+          createdBy: offer.carrierId,
+          meta: {
+            carrierId: offer.carrierId,
+            stripeSessionId: session.id,
+          },
+        });
+
+        sendPushNotificationToUser(
+          offer.carrierId,
+          'Kontakt je otključan',
+          'Sada možete pristupiti dogovoru.',
+          {
+            type: 'contact_unlocked',
+            shipmentId: shipment.id,
+            offerId: offer.id,
+          }
+        );
+
+        sendPushNotificationToUser(
+          shipment.senderId,
+          'TeReT vas je povezao',
+          'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati.',
+          {
+            type: 'carrier_contact_unlocked',
+            shipmentId: shipment.id,
+            offerId: offer.id,
+          }
+        );
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Stripe webhook obrada greška:', error);
+      res.status(500).send('Webhook obrada nije uspjela.');
+    }
+  }
+);
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use((req, res, next) => {
@@ -778,7 +916,27 @@ function cleanupUnverifiedUsers() {
 app.get('/', (req, res) => {
   res.json({ message: 'TeReT backend radi.' });
 });
+app.get('/payment-success', (req, res) => {
+  res.send(`
+    <html>
+      <body style="font-family: Arial; text-align: center; padding: 40px;">
+        <h2>Plaćanje uspješno</h2>
+        <p>Možete se vratiti u aplikaciju TeReT.</p>
+      </body>
+    </html>
+  `);
+});
 
+app.get('/payment-cancel', (req, res) => {
+  res.send(`
+    <html>
+      <body style="font-family: Arial; text-align: center; padding: 40px;">
+        <h2>Plaćanje otkazano</h2>
+        <p>Možete se vratiti u aplikaciju TeReT.</p>
+      </body>
+    </html>
+  `);
+});
 // ================= AUTH =================
 
 app.post('/register', async (req, res) => {
@@ -2256,6 +2414,9 @@ rejectedOffers.forEach((rejectedOffer) => {
 
 app.post('/shipments/:id/pay-commission', authMiddleware, (req, res) => {
   try {
+  return res.status(400).json({
+    message: 'Plaćanje se sada izvršava preko Stripe Checkouta.',
+  });
     if (!isCarrierRole(req.user.role)) {
       return res.status(403).json({ message: 'Samo prijevoznik može platiti proviziju.' });
     }
