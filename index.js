@@ -264,7 +264,7 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
           quantity: 1,
         },
       ],
-      success_url: `${APP_URL}/payment-success`,
+      success_url: `teret://payment-success?shipmentId=${shipmentId}`,
       cancel_url: `${APP_URL}/payment-cancel`,
       metadata: {
         carrierId: req.user.id,
@@ -284,7 +284,7 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
 });
 // ================= PATHS =================
 
-const dataDir = path.join(__dirname, 'data');
+const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
 const usersFile = path.join(dataDir, 'users.json');
 const shipmentsFile = path.join(dataDir, 'shipments.json');
 const offersFile = path.join(dataDir, 'offers.json');
