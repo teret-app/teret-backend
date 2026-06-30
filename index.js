@@ -222,7 +222,33 @@ app.use((req, res, next) => {
 app.post('/create-checkout-session', authMiddleware, async (req, res) => {
   try {
     const { shipmentId } = req.body;
+const offers = readJson(offersFile);
 
+const acceptedOffer = offers.find(
+  (o) =>
+    Number(o.shipmentId) === Number(shipmentId) &&
+    Number(o.carrierId) === Number(req.user.id) &&
+    (
+      o.status === 'accepted' ||
+      o.status === 'prihvaceno' ||
+      o.status === 'prihvaćeno'
+    )
+);
+
+if (!acceptedOffer) {
+  return res.status(404).json({
+    message: 'Prihvaćena ponuda nije pronađena.',
+  });
+}
+
+const acceptedAmount = Number(acceptedOffer.amount);
+const commissionAmount = Math.round(acceptedAmount * 0.05 * 100);
+
+if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
+  return res.status(400).json({
+    message: 'Neispravan iznos provizije.',
+  });
+}
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -233,7 +259,7 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
             product_data: {
               name: 'TeReT provizija',
             },
-            unit_amount: 500, // 5.00 €
+           unit_amount: commissionAmount,
           },
           quantity: 1,
         },
