@@ -242,7 +242,12 @@ if (!acceptedOffer) {
 }
 
 const acceptedAmount = Number(acceptedOffer.amount);
-const commissionAmount = Math.round(acceptedAmount * 0.05 * 100);
+
+const calculatedCommission = acceptedAmount * 0.05;
+
+const commissionAmount = Math.round(
+  Math.max(calculatedCommission, 5) * 100
+);
 
 if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
   return res.status(400).json({
