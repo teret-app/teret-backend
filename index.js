@@ -269,7 +269,7 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
           quantity: 1,
         },
       ],
-      success_url: `teret://payment-success?shipmentId=${shipmentId}`,
+     success_url: `${APP_URL}/payment-success?shipmentId=${shipmentId}`,
       cancel_url: `${APP_URL}/payment-cancel`,
       metadata: {
         carrierId: req.user.id,
@@ -948,22 +948,41 @@ app.get('/', (req, res) => {
   res.json({ message: 'TeReT backend radi.' });
 });
 app.get('/payment-success', (req, res) => {
-  res.send(`
-    <html>
-      <body style="font-family: Arial; text-align: center; padding: 40px;">
-        <h2>Plaćanje uspješno</h2>
-        <p>Možete se vratiti u aplikaciju TeReT.</p>
-      </body>
-    </html>
-  `);
-});
+  const shipmentId = req.query.shipmentId;
 
-app.get('/payment-cancel', (req, res) => {
   res.send(`
+    <!DOCTYPE html>
     <html>
-      <body style="font-family: Arial; text-align: center; padding: 40px;">
-        <h2>Plaćanje otkazano</h2>
-        <p>Možete se vratiti u aplikaciju TeReT.</p>
+      <head>
+        <meta charset="UTF-8">
+        <title>Plaćanje uspješno</title>
+
+        <script>
+          window.location.replace(
+            "teret://payment-success?shipmentId=${shipmentId}"
+          );
+
+          setTimeout(() => {
+            document.getElementById("openApp").style.display = "inline-block";
+          }, 2000);
+        </script>
+      </head>
+
+      <body style="font-family:Arial;text-align:center;padding:40px;">
+        <h2>✅ Plaćanje uspješno</h2>
+        <p>Vraćamo vas u aplikaciju TeReT...</p>
+
+        <a
+          id="openApp"
+          href="teret://payment-success?shipmentId=${shipmentId}"
+          style="display:none;
+                 padding:12px 20px;
+                 background:#2563eb;
+                 color:white;
+                 text-decoration:none;
+                 border-radius:8px;">
+          Otvori TeReT
+        </a>
       </body>
     </html>
   `);
