@@ -1880,8 +1880,10 @@ const senderRating = senderUser
       ? toNumber(acceptedOffer.amount, null)
       : null;
 
-    const provizijaIznos =
-      acceptedPrice !== null ? acceptedPrice * 0.05 : null;
+   const provizijaIznos =
+     acceptedPrice !== null
+       ? Math.max(acceptedPrice * 0.05, 5)
+       : null;
 
     res.json({
       ...sanitized,
