@@ -222,6 +222,17 @@ app.use((req, res, next) => {
 app.post('/create-checkout-session', authMiddleware, async (req, res) => {
   try {
     const { shipmentId } = req.body;
+   if (!stripe) {
+     return res.status(500).json({
+       message: 'Stripe nije konfiguriran.',
+     });
+   }
+
+   if (!shipmentId) {
+     return res.status(400).json({
+       message: 'shipmentId je obavezan.',
+     });
+   }
 const offers = readJson(offersFile);
 
 const acceptedOffer = offers.find(
@@ -240,7 +251,14 @@ if (!acceptedOffer) {
     message: 'Prihvaćena ponuda nije pronađena.',
   });
 }
-
+if (
+  acceptedOffer.commissionPaid === true ||
+  acceptedOffer.contactUnlocked === true
+) {
+  return res.status(400).json({
+    message: 'Provizija je već plaćena i kontakt je već otključan.',
+  });
+}
 const acceptedAmount = Number(acceptedOffer.amount);
 
 const calculatedCommission = acceptedAmount * 0.05;
@@ -2072,7 +2090,19 @@ app.post('/offers', authMiddleware, (req, res) => {
     const currency = req.body.currency || '€';
     const shipmentId = req.body.shipmentId || req.body.shipment_id;
     const amount = req.body.amount || req.body.price;
+const offerMessage = normalizeString(
+  req.body.message || req.body.poruka || ''
+);
 
+const forbiddenContactPattern =
+  /(\+?\d[\d\s\-\/().]{6,}\d)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(whatsapp|viber|telegram|signal|messenger|facebook|instagram|gmail|mail|email|e-mail|nazovi|zovi|javi se|kontaktiraj|kontakt|mobitel|telefon|broj)/i;
+
+if (forbiddenContactPattern.test(offerMessage)) {
+  return res.status(400).json({
+    message:
+      'Poruka ponude ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
+  });
+}
     if (!shipmentId || amount === undefined || amount === null || amount === '') {
       return res.status(400).json({ message: 'shipmentId i amount su obavezni.' });
     }
@@ -2144,6 +2174,7 @@ app.post('/offers', authMiddleware, (req, res) => {
 
       existingMyOffer.amount = numericAmount;
       existingMyOffer.currency = currency;
+      existingMyOffer.message = offerMessage;
       existingMyOffer.updatedAt = nowIso();
 
       existingMyOffer.bidHistory.push({
@@ -2185,6 +2216,7 @@ app.post('/offers', authMiddleware, (req, res) => {
       carrierId: Number(req.user.id),
       amount: numericAmount,
       currency,
+      message: offerMessage,
       status: 'active',
       contactUnlocked: false,
       commissionPaid: false,
@@ -2474,199 +2506,10 @@ rejectedOffers.forEach((rejectedOffer) => {
 });
 
 // ================= CONTACT UNLOCK / COMMISSION =================
-
 app.post('/shipments/:id/pay-commission', authMiddleware, (req, res) => {
-  try {
-  return res.status(400).json({
-    message: 'Plaćanje se sada izvršava preko Stripe Checkouta.',
+  return res.status(410).json({
+    message: 'Plaćanje se sada izvršava isključivo preko Stripe Checkouta.',
   });
-    if (!isCarrierRole(req.user.role)) {
-      return res.status(403).json({ message: 'Samo prijevoznik može platiti proviziju.' });
-    }
-
-    const offers = readJson(offersFile);
-    const shipments = readJson(shipmentsFile);
-
-    const shipment = shipments.find((s) => Number(s.id) === Number(req.params.id));
-    if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
-    }
-
-    const offer = offers.find(
-      (o) =>
-        Number(o.shipmentId) === Number(shipment.id) &&
-        Number(o.carrierId) === Number(req.user.id) &&
-        (o.status === 'accepted' || o.status === 'prihvaceno' || o.status === 'prihvaćeno')
-    );
-
-    if (!offer) {
-      return res.status(403).json({
-        message: 'Samo prihvaćeni prijevoznik može platiti proviziju za ovaj teret.',
-      });
-    }
-
-    if (offer.contactUnlocked === true) {
-      return res.json({
-        message: 'Kontakt je već otključan.',
-        contactUnlocked: true,
-        commissionPaid: offer.commissionPaid === true,
-      });
-    }
-
-    offer.commissionPaid = true;
-    offer.contactUnlocked = true;
-    offer.updatedAt = nowIso();
-
-    shipment.contactUnlocked = true;
-    shipment.updatedAt = nowIso();
-
-    writeJson(offersFile, offers);
-    writeJson(shipmentsFile, shipments);
-
-addNotification({
-  userId: offer.carrierId,
-  type: 'contact_unlocked',
-  title: 'Kontakt je otključan',
-  message: 'Sada možete pristupiti dogovoru .',
-  shipmentId: shipment.id,
-  offerId: offer.id,
-  createdBy: req.user.id,
-  meta: {
-    commissionPaid: true,
-  },
-});
-
-addNotification({
-  userId: shipment.senderId,
-  type: 'carrier_contact_unlocked',
-  title: 'TeReT vas je povezao',
-  message:
-    'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati u vezi dogovora.',
-  shipmentId: shipment.id,
-  offerId: offer.id,
-  createdBy: req.user.id,
-  meta: {
-    carrierId: offer.carrierId,
-  },
-});
-
-sendPushNotificationToUser(
-  offer.carrierId,
-  'Kontakt je otključan',
-  'Sada možete pristupiti dogovoru .',
-  {
-    type: 'contact_unlocked',
-    shipmentId: shipment.id,
-    offerId: offer.id,
-  }
-);
-
-sendPushNotificationToUser(
-  shipment.senderId,
-  'TeReT vas je povezao',
-  'Prihvaćeni prijevoznik sada vidi vaše kontakt podatke.',
-  {
-    type: 'carrier_contact_unlocked',
-    shipmentId: shipment.id,
-    offerId: offer.id,
-  }
-);
-
-    res.json({
-      message: 'Provizija je evidentirana. Kontakt je otključan.',
-      contactUnlocked: true,
-      commissionPaid: true,
-    });
-  } catch (error) {
-    console.error('Greška /shipments/:id/pay-commission:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
-});
-
-app.post('/offers/:id/unlock-contact', authMiddleware, (req, res) => {
-  try {
-    if (!isCarrierRole(req.user.role)) {
-      return res.status(403).json({ message: 'Samo prijevoznik može otključati kontakt.' });
-    }
-
-    const offers = readJson(offersFile);
-    const shipments = readJson(shipmentsFile);
-
-    const offer = offers.find((o) => Number(o.id) === Number(req.params.id));
-    if (!offer) {
-      return res.status(404).json({ message: 'Ponuda nije pronađena.' });
-    }
-
-    if (Number(offer.carrierId) !== Number(req.user.id)) {
-      return res.status(403).json({ message: 'Nemate pravo otključati ovaj kontakt.' });
-    }
-
-    const shipment = shipments.find((s) => Number(s.id) === Number(offer.shipmentId));
-    if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
-    }
-
-    if (offer.status !== 'accepted') {
-      return res.status(400).json({
-        message: 'Kontakt je moguće otključati tek nakon što ponuda bude prihvaćena.',
-      });
-    }
-
-    if (offer.contactUnlocked === true) {
-      return res.json({
-        message: 'Kontakt je već otključan.',
-        contactUnlocked: true,
-        offer,
-      });
-    }
-
-    offer.commissionPaid = true;
-    offer.contactUnlocked = true;
-    offer.updatedAt = nowIso();
-
-    shipment.contactUnlocked = true;
-    shipment.updatedAt = nowIso();
-
-    writeJson(offersFile, offers);
-    writeJson(shipmentsFile, shipments);
-
-    addNotification({
-      userId: offer.carrierId,
-      type: 'contact_unlocked',
-      title: 'Kontakt otključan',
-      message: 'Kontakt otključan. Možete započeti dogovor u vezi realizacije prijevoza.',
-      shipmentId: shipment.id,
-      offerId: offer.id,
-      createdBy: req.user.id,
-      meta: {
-        commissionPaid: true,
-      },
-    });
-
-    addNotification({
-      userId: shipment.senderId,
-      type: 'carrier_contact_unlocked',
-      title: 'TeReT vas je povezao',
-      message:
-        'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati u vezi dogovora.',
-      shipmentId: shipment.id,
-      offerId: offer.id,
-      createdBy: req.user.id,
-      meta: {
-        carrierId: offer.carrierId,
-      },
-    });
-
-
-    res.json({
-      message: 'Kontakt je uspješno otključan.',
-      contactUnlocked: true,
-      offer,
-    });
-  } catch (error) {
-    console.error('Greška /offers/:id/unlock-contact:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
 });
 
 // ================= DELIVERY CONFIRM =================
