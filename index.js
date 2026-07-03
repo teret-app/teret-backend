@@ -1415,6 +1415,17 @@ const savedImages = saveShipmentImages(
   rawShipmentImages,
   newShipmentId
 );
+const textForContactCheck = `${req.body.naziv_tereta || req.body.title || ''} ${req.body.opis_tereta || req.body.description || ''}`;
+
+const forbiddenContactPattern =
+  /(\+?\d[\d\s\-\/().]{6,}\d)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(whatsapp|viber|telegram|signal|messenger|facebook|instagram|gmail|mail|email|e-mail|nazovi|zovi|javi se|kontaktiraj|kontakt|mobitel|telefon|broj)/i;
+
+if (forbiddenContactPattern.test(textForContactCheck)) {
+  return res.status(400).json({
+    message:
+      'Opis tereta ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
+  });
+}
     const newShipment = {
       id: newShipmentId,
       senderId: Number(req.user.id),
