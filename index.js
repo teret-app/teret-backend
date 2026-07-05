@@ -1687,6 +1687,10 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
           return false;
         }
 
+        if (shipment.hiddenBySender === true) {
+          return false;
+        }
+
         return isVisibleFinishedShipment(shipment);
       })
       .map((shipment) => {
@@ -1716,7 +1720,68 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
     res.status(500).json({ message: 'Greška na serveru.' });
   }
 });
+app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'sender') {
+      return res.status(403).json({
+        message: 'Samo naručitelj može ukloniti objavu iz povijesti.',
+      });
+    }
 
+    const shipments = readJson(shipmentsFile);
+
+    const shipment = shipments.find(
+      (s) => Number(s.id) === Number(req.params.id)
+    );
+
+    if (!shipment) {
+      return res.status(404).json({
+        message: 'Teret nije pronađen.',
+      });
+    }
+
+    if (Number(shipment.senderId) !== Number(req.user.id)) {
+      return res.status(403).json({
+        message: 'Nemate pravo ukloniti ovu objavu.',
+      });
+    }
+
+    const status = normalizeString(shipment.status).toLowerCase();
+
+    const canHide =
+      status === 'completed' ||
+      status === 'zavrseno' ||
+      status === 'završeno' ||
+      status === 'licitacija_zavrsena' ||
+      status === 'licitacija završena' ||
+      status === 'expired' ||
+      status === 'isteklo' ||
+      status === 'withdrawn' ||
+      status === 'povuceno' ||
+      status === 'povučeno';
+
+    if (!canHide) {
+      return res.status(400).json({
+        message: 'Samo završene, istekle ili povučene objave mogu se ukloniti iz povijesti.',
+      });
+    }
+
+    shipment.hiddenBySender = true;
+    shipment.hiddenBySenderAt = nowIso();
+    shipment.updatedAt = nowIso();
+
+    writeJson(shipmentsFile, shipments);
+
+    res.json({
+      message: 'Objava je uklonjena iz povijesti.',
+    });
+  } catch (error) {
+    console.error('Greška PUT /shipments/:id/hide:', error);
+    res.status(500).json({
+      message: 'Greška na serveru.',
+    });
+  }
+});
 app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
