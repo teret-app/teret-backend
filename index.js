@@ -2731,7 +2731,108 @@ app.post('/notifications/:id/read', authMiddleware, (req, res) => {
     res.status(500).json({ message: 'Greška na serveru.' });
   }
 });
+app.post('/notifications/read-all', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
 
+    let changed = false;
+
+    notifications.forEach((notification) => {
+      if (Number(notification.userId) === Number(req.user.id)) {
+        notification.isRead = true;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      writeJson(notificationsFile, notifications);
+    }
+
+    res.json({
+      message: 'Sve obavijesti su označene kao pročitane.',
+    });
+  } catch (error) {
+    console.error('Greška POST /notifications/read-all:', error);
+    res.status(500).json({ message: 'Greška na serveru.' });
+  }
+});
+
+app.delete('/notifications/read', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+
+    const filteredNotifications = notifications.filter((notification) => {
+      return !(
+        Number(notification.userId) === Number(req.user.id) &&
+        notification.isRead === true
+      );
+    });
+
+    writeJson(notificationsFile, filteredNotifications);
+
+    res.json({
+      message: 'Pročitane obavijesti su obrisane.',
+    });
+  } catch (error) {
+    console.error('Greška DELETE /notifications/read:', error);
+    res.status(500).json({ message: 'Greška na serveru.' });
+  }
+});
+
+app.delete('/notifications/:id', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+    const notificationId = Number(req.params.id);
+
+    const notification = notifications.find(
+      (n) => Number(n.id) === notificationId
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        message: 'Obavijest nije pronađena.',
+      });
+    }
+
+    if (Number(notification.userId) !== Number(req.user.id)) {
+      return res.status(403).json({
+        message: 'Nemate pravo obrisati ovu obavijest.',
+      });
+    }
+
+    const filteredNotifications = notifications.filter(
+      (n) => Number(n.id) !== notificationId
+    );
+
+    writeJson(notificationsFile, filteredNotifications);
+
+    res.json({
+      message: 'Obavijest je obrisana.',
+    });
+  } catch (error) {
+    console.error('Greška DELETE /notifications/:id:', error);
+    res.status(500).json({ message: 'Greška na serveru.' });
+  }
+});
+
+app.delete('/notifications', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+
+    const filteredNotifications = notifications.filter((notification) => {
+      return Number(notification.userId) !== Number(req.user.id);
+    });
+
+    writeJson(notificationsFile, filteredNotifications);
+
+    res.json({
+      message: 'Sve obavijesti su obrisane.',
+    });
+  } catch (error) {
+    console.error('Greška DELETE /notifications:', error);
+    res.status(500).json({ message: 'Greška na serveru.' });
+  }
+});
 // ================= START =================
 
 runCleanup();
