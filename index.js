@@ -2143,6 +2143,47 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
 });
 
 // ================= OFFERS =================
+app.put('/offers/:id/hide', authMiddleware, (req, res) => {
+  try {
+    if (!isCarrierRole(req.user.role)) {
+      return res.status(403).json({
+        message: 'Samo prijevoznik može ukloniti ponudu iz povijesti.',
+      });
+    }
+
+    const offers = readJson(offersFile);
+
+    const offer = offers.find(
+      (o) => Number(o.id) === Number(req.params.id)
+    );
+
+    if (!offer) {
+      return res.status(404).json({
+        message: 'Ponuda nije pronađena.',
+      });
+    }
+
+    if (Number(offer.carrierId) !== Number(req.user.id)) {
+      return res.status(403).json({
+        message: 'Nemate pristup ovoj ponudi.',
+      });
+    }
+
+    offer.hiddenByCarrier = true;
+    offer.hiddenByCarrierAt = nowIso();
+
+    writeJson(offersFile, offers);
+
+    res.json({
+      message: 'Ponuda je uklonjena iz povijesti.',
+    });
+  } catch (error) {
+    console.error('Greška /offers/:id/hide:', error);
+    res.status(500).json({
+      message: 'Greška na serveru.',
+    });
+      }
+    });
 
 app.post('/offers', authMiddleware, (req, res) => {
   try {
@@ -2346,21 +2387,26 @@ app.get('/my-offers', authMiddleware, (req, res) => {
 
 
     const myOffers = offers
-      .filter((offer) => {
-        if (Number(offer.carrierId) !== Number(req.user.id)) {
-          return false;
-        }
+     .filter((offer) => {
+         if (Number(offer.carrierId) !== Number(req.user.id)) {
+             return false;
+         }
 
-        const shipment = shipments.find(
-          (s) => Number(s.id) === Number(offer.shipmentId)
-        );
+         // NOVO
+         if (offer.hiddenByCarrier === true) {
+             return false;
+         }
 
-        if (!shipment) {
-          return false;
-        }
+         const shipment = shipments.find(
+             (s) => Number(s.id) === Number(offer.shipmentId)
+         );
 
-          return isVisibleFinishedShipment(shipment);
-      })
+         if (!shipment) {
+             return false;
+         }
+
+         return isVisibleFinishedShipment(shipment);
+     })
       .map((offer) => {
 
 
