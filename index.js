@@ -1450,10 +1450,13 @@ if (forbiddenContactPattern.test(textForContactCheck)) {
       status: 'aktivan',
       naziv_tereta: req.body.naziv_tereta || req.body.title || '',
       opis_tereta: req.body.opis_tereta || req.body.description || '',
-      mjesto_utovara: req.body.mjesto_utovara || '',
-      adresa_utovara: req.body.adresa_utovara || '',
-      mjesto_istovara: req.body.mjesto_istovara || '',
-      adresa_istovara: req.body.adresa_istovara || '',
+     drzava_utovara: normalizeString(req.body.drzava_utovara) || 'Hrvatska',
+     mjesto_utovara: req.body.mjesto_utovara || '',
+     adresa_utovara: req.body.adresa_utovara || '',
+
+     drzava_istovara: normalizeString(req.body.drzava_istovara) || 'Hrvatska',
+     mjesto_istovara: req.body.mjesto_istovara || '',
+     adresa_istovara: req.body.adresa_istovara || '',
       datum_utovara: req.body.datum_utovara || '',
       rok_utovara: rokUtovara || '',
       rok_licitacije: req.body.rok_licitacije || '',
@@ -1846,7 +1849,9 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
     const licitacijaZavrsavaAt = new Date(
       Date.now() + satiLicitacije * 60 * 60 * 1000
     ).toISOString();
-
+    console.log('SHIPMENT BODY:', req.body);
+    console.log('DRZAVA UTOVARA:', req.body.drzava_utovara);
+    console.log('DRZAVA ISTOVARA:', req.body.drzava_istovara);
     const newShipment = {
       ...oldShipment,
       id: getNextId(shipments),
