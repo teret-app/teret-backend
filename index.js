@@ -446,13 +446,22 @@ function authMiddleware(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    const users = readJson(usersFile);
+    const user = users.find((u) => Number(u.id) === Number(decoded.id));
+
+    if (!user) {
+      return res.status(401).json({
+        message: 'Korisnik više ne postoji. Prijavite se ponovno.',
+      });
+    }
+
     req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Neispravan ili istekao token.' });
   }
 }
-
 function getUserById(userId) {
   const users = readJson(usersFile);
   return users.find((u) => Number(u.id) === Number(userId)) || null;
