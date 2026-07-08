@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 const app = express();
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = 'TeReT_secret_key';
 let firebaseReady = false;
