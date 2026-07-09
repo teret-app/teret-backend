@@ -290,10 +290,11 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
       ],
      success_url: `${APP_URL}/payment-success?shipmentId=${shipmentId}`,
       cancel_url: `${APP_URL}/payment-cancel`,
-      metadata: {
-        carrierId: req.user.id,
-        shipmentId,
-      },
+     metadata: {
+       carrierId: String(req.user.id),
+       shipmentId: String(shipmentId),
+       offerId: String(acceptedOffer.id),
+     },
     });
 
     res.json({
