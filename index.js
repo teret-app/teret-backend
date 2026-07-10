@@ -17,7 +17,11 @@ const admin = require('firebase-admin');
 const app = express();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = 'TeReT_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET nije postavljen.');
+}
 let firebaseReady = false;
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 
@@ -315,7 +319,7 @@ const shipmentsFile = path.join(dataDir, 'shipments.json');
 const offersFile = path.join(dataDir, 'offers.json');
 const notificationsFile = path.join(dataDir, 'notifications.json');
 const ratingsFile = path.join(dataDir, 'ratings.json');
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(dataDir, 'uploads');
 const shipmentUploadsDir = path.join(uploadsDir, 'shipments');
 
 if (!fs.existsSync(shipmentUploadsDir)) {
