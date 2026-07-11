@@ -1034,6 +1034,9 @@ app.post('/register', async (req, res) => {
     const role = normalizeRole(req.body.role);
     const country = normalizeString(req.body.country);
     const wantsR1Invoice = req.body.wantsR1Invoice === true;
+    const r1Oib = normalizeString(req.body.r1Oib);
+    const r1Address = normalizeString(req.body.r1Address);
+    const r1PostalCode = normalizeString(req.body.r1PostalCode);
     let region = 'Evropa';
 
     if (country === 'Ujedinjeno Kraljevstvo') {
@@ -1073,7 +1076,11 @@ app.post('/register', async (req, res) => {
       region,
       password: hashedPassword,
       role,
+
       wantsR1Invoice,
+      r1Oib,
+      r1Address,
+      r1PostalCode,
       emailVerified: false,
       verificationToken,
       verifiedAt: null,
