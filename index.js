@@ -280,6 +280,12 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
+     tax_id_collection: {
+       enabled: true,
+       required: 'if_supported',
+     },
+
+     billing_address_collection: 'required',
       line_items: [
         {
           price_data: {
