@@ -280,12 +280,12 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-     tax_id_collection: {
-       enabled: true,
-       required: 'if_supported',
-     },
+    tax_id_collection: {
+      enabled: true,
+      required: 'never',
+    },
 
-     billing_address_collection: 'required',
+    billing_address_collection:'required',
       line_items: [
         {
           price_data: {
@@ -1341,6 +1341,21 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
 
     const shipments = readJson(shipmentsFile);
     const offers = readJson(offersFile);
+    const users = readJson(usersFile);
+
+    const carrier = users.find(
+      (u) => Number(u.id) === Number(req.user.id)
+    );
+
+    if (!carrier) {
+      return res.status(404).json({
+        message: 'Prijevoznik nije pronađen.',
+      });
+    }
+
+
+
+
     const shipment = shipments.find(
       (s) => Number(s.id) === Number(req.params.id)
     );
