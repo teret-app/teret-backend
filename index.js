@@ -1795,17 +1795,22 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
 
     const status = normalizeString(shipment.status).toLowerCase();
 
-    const canHide =
-      status === 'completed' ||
-      status === 'zavrseno' ||
-      status === 'završeno' ||
-      status === 'licitacija_zavrsena' ||
-      status === 'licitacija završena' ||
-      status === 'expired' ||
-      status === 'isteklo' ||
-      status === 'withdrawn' ||
-      status === 'povuceno' ||
-      status === 'povučeno';
+     const auctionEnded =
+       shipment.licitacija_zavrsava_at &&
+       new Date(shipment.licitacija_zavrsava_at).getTime() <= Date.now();
+
+     const canHide =
+       status === 'completed' ||
+       status === 'zavrseno' ||
+       status === 'završeno' ||
+       status === 'licitacija_zavrsena' ||
+       status === 'licitacija završena' ||
+       status === 'expired' ||
+       status === 'isteklo' ||
+       status === 'withdrawn' ||
+       status === 'povuceno' ||
+       status === 'povučeno' ||
+       auctionEnded;
 
     if (!canHide) {
       return res.status(400).json({
@@ -1869,7 +1874,37 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
           'Teret se može ponovno objaviti samo ako nije bilo ponuda.',
       });
     }
+    const existingActiveRepost = shipments.find((shipment) => {
+      if (
+        Number(shipment.repostedFromId) !== Number(oldShipment.id) ||
+        Number(shipment.senderId) !== Number(req.user.id)
+      ) {
+        return false;
+      }
 
+      const status = normalizeString(shipment.status).toLowerCase();
+
+      const isActiveStatus =
+        status === 'aktivan' ||
+        status === 'active';
+
+      const auctionEnd = new Date(
+        shipment.licitacija_zavrsava_at
+      ).getTime();
+
+      const auctionStillRunning =
+        Number.isFinite(auctionEnd) && auctionEnd > Date.now();
+
+      return isActiveStatus && auctionStillRunning;
+    });
+
+    if (existingActiveRepost) {
+      return res.status(409).json({
+        message:
+          'Ovaj teret je već ponovno objavljen i licitacija je još aktivna.',
+        shipmentId: existingActiveRepost.id,
+      });
+    }
     const trajanjeLicitacije =
       oldShipment.trajanje_licitacije || '24 sata';
 
