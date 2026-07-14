@@ -1437,7 +1437,19 @@ app.post('/shipments', authMiddleware, (req, res) => {
       normalizeString(req.body.rok_preuzimanja) || '24 sata';
 
     let satiLicitacije = 24;
+if (
+  trajanjeLicitacije === '1 sat' ||
+  trajanjeLicitacije === '1h'
+) {
+  satiLicitacije = 1;
+}
 
+if (
+  trajanjeLicitacije === '2 sata' ||
+  trajanjeLicitacije === '2h'
+) {
+  satiLicitacije = 2;
+}
     if (trajanjeLicitacije === '6 sati') {
       satiLicitacije = 6;
     }
@@ -1909,7 +1921,19 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
       oldShipment.trajanje_licitacije || '24 sata';
 
     let satiLicitacije = 24;
+if (
+  trajanjeLicitacije === '1 sat' ||
+  trajanjeLicitacije === '1h'
+) {
+  satiLicitacije = 1;
+}
 
+if (
+  trajanjeLicitacije === '2 sata' ||
+  trajanjeLicitacije === '2h'
+) {
+  satiLicitacije = 2;
+}
     if (trajanjeLicitacije === '6 sati') {
       satiLicitacije = 6;
     }
