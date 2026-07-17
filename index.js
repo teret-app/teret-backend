@@ -15,6 +15,8 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -1271,7 +1273,216 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Greška na serveru.' });
   }
 });
+app.post('/forgot-password', async (req, res) => {
+  try {
+    const email = normalizeString(req.body.email).toLowerCase();
+    const users = readJson(usersFile);
 
+    const user = users.find(
+      (u) => normalizeString(u.email).toLowerCase() === email
+    );
+
+    const genericMessage =
+      'Ako račun s tim e-mailom postoji, poslana je poveznica za promjenu lozinke.';
+
+    if (!user) {
+      return res.json({
+        message: genericMessage,
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpiresAt = Date.now() + 30 * 60 * 1000;
+
+    writeJson(usersFile, users);
+
+    const resetUrl =
+      `${APP_URL}/reset-password?token=${resetToken}`;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'TeReT – promjena lozinke',
+      html: `
+        <p>Zaprimili smo zahtjev za promjenu lozinke.</p>
+
+        <p>
+          <a href="${resetUrl}">
+            Postavi novu lozinku
+          </a>
+        </p>
+
+        <p>Poveznica vrijedi 30 minuta.</p>
+
+        <p>
+          Ako niste tražili promjenu lozinke,
+          zanemarite ovu poruku.
+        </p>
+      `,
+    });
+
+    return res.json({
+      message: genericMessage,
+    });
+  } catch (error) {
+    console.error('Greška /forgot-password:', error);
+
+    return res.status(500).json({
+      message: 'Greška na serveru.',
+    });
+  }
+});
+app.get('/reset-password', (req, res) => {
+  const token = normalizeString(req.query.token);
+
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="hr">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>TeReT - Nova lozinka</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background: #f5f5f5;
+          padding: 24px;
+        }
+
+        .card {
+          max-width: 420px;
+          margin: 40px auto;
+          background: white;
+          padding: 24px;
+          border-radius: 14px;
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px;
+          margin-top: 8px;
+          margin-bottom: 16px;
+        }
+
+        button {
+          width: 100%;
+          padding: 12px;
+          border: none;
+          border-radius: 8px;
+          background: #2e7d32;
+          color: white;
+          font-size: 16px;
+          font-weight: bold;
+        }
+      </style>
+    </head>
+
+    <body>
+      <div class="card">
+        <h2>Postavite novu lozinku</h2>
+
+        <form method="POST" action="/reset-password">
+          <input type="hidden" name="token" value="${token}">
+
+          <label>Nova lozinka</label>
+          <input
+            type="password"
+            name="password"
+            minlength="6"
+            required
+          >
+
+          <label>Ponovite novu lozinku</label>
+          <input
+            type="password"
+            name="confirmPassword"
+            minlength="6"
+            required
+          >
+
+          <button type="submit">
+            Spremi novu lozinku
+          </button>
+        </form>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+app.post('/reset-password', async (req, res) => {
+  try {
+    const token = normalizeString(req.body.token);
+    const password = String(req.body.password || '');
+    const confirmPassword = String(req.body.confirmPassword || '');
+
+    if (!token) {
+      return res.status(400).send(
+        '<h3>Neispravna poveznica za promjenu lozinke.</h3>'
+      );
+    }
+
+    if (password.length < 6) {
+      return res.status(400).send(
+        '<h3>Lozinka mora imati najmanje 6 znakova.</h3>'
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).send(
+        '<h3>Lozinke se ne podudaraju.</h3>'
+      );
+    }
+
+    const users = readJson(usersFile);
+
+    const user = users.find(
+      (u) =>
+        u.resetPasswordToken === token &&
+        Number(u.resetPasswordExpiresAt) > Date.now()
+    );
+
+    if (!user) {
+      return res.status(400).send(`
+        <h3>Poveznica je neispravna ili je istekla.</h3>
+        <p>Ponovno zatražite promjenu lozinke u aplikaciji TeReT.</p>
+      `);
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+
+    delete user.resetPasswordToken;
+    delete user.resetPasswordExpiresAt;
+
+    writeJson(usersFile, users);
+
+    return res.send(`
+      <!DOCTYPE html>
+      <html lang="hr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Lozinka promijenjena</title>
+      </head>
+
+      <body style="font-family: Arial; padding: 30px; text-align: center;">
+        <h2>Lozinka je uspješno promijenjena.</h2>
+        <p>Sada se možete vratiti u aplikaciju TeReT i prijaviti novom lozinkom.</p>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Greška POST /reset-password:', error);
+
+    return res.status(500).send(
+      '<h3>Greška na serveru. Pokušajte ponovno.</h3>'
+    );
+  }
+});
 app.get('/me', authMiddleware, (req, res) => {
   const user = getUserById(req.user.id);
 
