@@ -1519,7 +1519,10 @@ if (forbiddenContactPattern.test(textForContactCheck)) {
       trajanje_licitacije: trajanjeLicitacije,
       rok_preuzimanja: rokPreuzimanja,
       licitacija_zavrsava_at: licitacijaZavrsavaAt,
-      tezina_kg: req.body.tezina_kg || '',
+      tezina_cca_kg:
+        req.body.tezina_cca_kg ||
+        req.body.tezina_kg ||
+        '',
       duzina_cm: req.body.duzina_cm || '',
       sirina_cm: req.body.sirina_cm || '',
       visina_cm: req.body.visina_cm || '',
