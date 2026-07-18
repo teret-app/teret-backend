@@ -1301,8 +1301,8 @@ app.post('/forgot-password', async (req, res) => {
     const resetUrl =
       `${APP_URL}/reset-password?token=${resetToken}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await mailTransporter.sendMail({
+      from: `"TeReT" <${process.env.MAIL_USER}>`,
       to: user.email,
       subject: 'TeReT – promjena lozinke',
       html: `
