@@ -2322,6 +2322,7 @@ const senderRating = senderUser
 
     res.json({
       ...sanitized,
+      isSenderOwner,
 isAcceptedCarrier: isAcceptedCarrier === true,
       senderName: senderUser ? senderUser.fullName || '' : '',
 senderId: senderUser ? Number(senderUser.id) : null,
