@@ -1383,31 +1383,77 @@ app.get('/reset-password', (req, res) => {
 
     <body>
       <div class="card">
-        <h2>Postavite novu lozinku</h2>
+      <h2>Postavite novu lozinku</h2>
 
-        <form method="POST" action="/reset-password">
-          <input type="hidden" name="token" value="${token}">
+      <form method="POST" action="/reset-password">
+        <input type="hidden" name="token" value="${token}">
 
-          <label>Nova lozinka</label>
+        <label>Nova lozinka</label>
+        <div style="position:relative;margin-bottom:16px;">
           <input
+            id="password"
             type="password"
             name="password"
             minlength="6"
             required
+            style="width:100%;padding-right:45px;"
           >
+          <span
+            onclick="togglePassword('password', this)"
+            style="
+              position:absolute;
+              right:14px;
+              top:50%;
+              transform:translateY(-50%);
+              cursor:pointer;
+              user-select:none;
+              font-size:20px;
+            "
+          >👁️</span>
+        </div>
 
-          <label>Ponovite novu lozinku</label>
+        <label>Ponovite novu lozinku</label>
+        <div style="position:relative;margin-bottom:16px;">
           <input
+            id="confirmPassword"
             type="password"
             name="confirmPassword"
             minlength="6"
             required
+            style="width:100%;padding-right:45px;"
           >
+          <span
+            onclick="togglePassword('confirmPassword', this)"
+            style="
+              position:absolute;
+              right:14px;
+              top:50%;
+              transform:translateY(-50%);
+              cursor:pointer;
+              user-select:none;
+              font-size:20px;
+            "
+          >👁️</span>
+        </div>
 
-          <button type="submit">
-            Spremi novu lozinku
-          </button>
-        </form>
+        <button type="submit">
+          Spremi novu lozinku
+        </button>
+      </form>
+
+      <script>
+      function togglePassword(id, icon) {
+        const input = document.getElementById(id);
+
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          icon.textContent = '👁️';
+        }
+      }
+      </script>
       </div>
     </body>
     </html>
