@@ -15,8 +15,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -154,7 +153,7 @@ app.post(
         offer.stripeSessionId = session.id;
         offer.stripePaymentIntentId = session.payment_intent || null;
         offer.updatedAt = nowIso();
-
+        shipment.commissionPaid = true;
         shipment.contactUnlocked = true;
         shipment.updatedAt = nowIso();
 
@@ -221,6 +220,7 @@ app.post(
   }
 );
 app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
