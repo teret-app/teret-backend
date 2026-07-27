@@ -606,6 +606,21 @@ function t(userId, hr, en) {
 
   return hr;
 }
+
+function apiText(req, hr, en) {
+  const requestedLanguage =
+    normalizeString(
+      req.headers['accept-language'],
+    ).toLowerCase();
+
+  if (requestedLanguage.startsWith('en')) {
+    return en;
+  }
+
+  return hr;
+}
+
+
 async function sendPushNotificationToUser(
   userId,
   title,
@@ -1234,23 +1249,36 @@ app.post('/resend-verification-email', async (req, res) => {
 
     if (!email) {
       return res.status(400).json({
-        message: 'Email je obavezan.',
+        message: apiText(
+          req,
+          'Email je obavezan.',
+          'Email is required.'
+        ),
       });
     }
 
     const user = users.find(
-      (u) => normalizeString(u.email).toLowerCase() === email
+      (u) =>
+        normalizeString(u.email).toLowerCase() === email
     );
 
     if (!user) {
       return res.status(404).json({
-        message: 'Korisnik s tom email adresom nije pronađen.',
+        message: apiText(
+          req,
+          'Korisnik s tom email adresom nije pronađen.',
+          'A user with that email address was not found.'
+        ),
       });
     }
 
     if (user.emailVerified === true) {
       return res.json({
-        message: 'Račun je već potvrđen. Možete se prijaviti.',
+        message: apiText(
+          req,
+          'Račun je već potvrđen. Možete se prijaviti.',
+          'The account is already verified. You can sign in.'
+        ),
       });
     }
 
@@ -1261,66 +1289,120 @@ app.post('/resend-verification-email', async (req, res) => {
 
     writeJson(usersFile, users);
 
-    const verificationUrl = `${APP_URL}/verify-email/${verificationToken}`;
+    const verificationUrl =
+      `${APP_URL}/verify-email/${verificationToken}`;
 
-    await sendVerificationEmail(email, verificationUrl);
+    await sendVerificationEmail(
+      email,
+      verificationUrl
+    );
 
-    res.json({
-      message:
+    return res.json({
+      message: apiText(
+        req,
         'Email za potvrdu je ponovno poslan. Provjerite inbox i spam.',
+        'The verification email has been resent. Check your inbox and spam folder.'
+      ),
     });
   } catch (error) {
-    console.error('Greška /resend-verification-email:', error);
+    console.error(
+      'Greška /resend-verification-email:',
+      error
+    );
 
-    res.status(500).json({
-      message: 'Greška na serveru.',
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
     });
   }
 });
+
 app.post('/login', async (req, res) => {
   try {
     console.log('LOGIN BODY:', req.body);
 
     const users = readJson(usersFile);
-  console.log('BROJ KORISNIKA:', users.length);
-  console.log(
-  'EMAILOVI U BAZI:',
-  users.map((u) => ({
-    id: u.id,
-    email: u.email,
-    emailVerified: u.emailVerified,
-  }))
-);
-    const email = normalizeString(req.body.email).toLowerCase();
-    const password = String(req.body.password || '');
+
+    console.log('BROJ KORISNIKA:', users.length);
+
+    console.log(
+      'EMAILOVI U BAZI:',
+      users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        emailVerified: u.emailVerified,
+      }))
+    );
+
+    const email =
+      normalizeString(req.body.email).toLowerCase();
+
+    const password =
+      String(req.body.password || '');
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email i password su obavezni.' });
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Email i lozinka su obavezni.',
+          'Email and password are required.'
+        ),
+      });
     }
 
-    const user = users.find((u) => normalizeString(u.email).toLowerCase() === email);
+    const user = users.find(
+      (u) =>
+        normalizeString(u.email).toLowerCase() ===
+        email
+    );
+
     console.log('LOGIN TRAŽI EMAIL:', email);
     console.log('LOGIN USER PRONAĐEN:', !!user);
+
     if (!user) {
-      return res.status(401).json({ message: 'Pogrešan email ili lozinka.' });
+      return res.status(401).json({
+        message: apiText(
+          req,
+          'Pogrešan email ili lozinka.',
+          'Invalid email or password.'
+        ),
+      });
     }
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) {
-      return res.status(401).json({ message: 'Pogrešan email ili lozinka.' });
+    const passwordCorrect =
+      await bcrypt.compare(password, user.password);
+
+    if (!passwordCorrect) {
+      return res.status(401).json({
+        message: apiText(
+          req,
+          'Pogrešan email ili lozinka.',
+          'Invalid email or password.'
+        ),
+      });
     }
 
     if (user.emailVerified !== true) {
       return res.status(403).json({
-        message:
+        message: apiText(
+          req,
           'Račun nije potvrđen.',
+          'Account has not been verified.'
+        ),
       });
     }
 
     const token = createToken(user);
 
-    res.json({
-      message: 'Prijava uspješna.',
+    return res.json({
+      message: apiText(
+        req,
+        'Prijava uspješna.',
+        'Login successful.'
+      ),
       token,
       user: {
         id: user.id,
@@ -1329,14 +1411,23 @@ app.post('/login', async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        emailVerified: user.emailVerified === true,
+        emailVerified:
+          user.emailVerified === true,
       },
     });
   } catch (error) {
     console.error('Greška /login:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
   }
 });
+    cons
 app.post('/forgot-password', async (req, res) => {
   try {
     const email = normalizeString(req.body.email).toLowerCase();
