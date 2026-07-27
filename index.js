@@ -1437,8 +1437,11 @@ app.post('/forgot-password', async (req, res) => {
       (u) => normalizeString(u.email).toLowerCase() === email
     );
 
-    const genericMessage =
-      'Ako račun s tim e-mailom postoji, poslana je poveznica za promjenu lozinke.';
+    const genericMessage = apiText(
+      req,
+      'Ako račun s tim e-mailom postoji, poslana je poveznica za promjenu lozinke.',
+      'If an account with that email exists, a password reset link has been sent.'
+    );
 
     if (!user) {
       return res.json({
@@ -1484,9 +1487,13 @@ app.post('/forgot-password', async (req, res) => {
   } catch (error) {
     console.error('Greška /forgot-password:', error);
 
-    return res.status(500).json({
-      message: 'Greška na serveru.',
-    });
+   return res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
   }
 });
 app.get('/reset-password', (req, res) => {
