@@ -1633,7 +1633,15 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
         message: 'Korisnik nije pronađen.',
       });
     }
-
+users.forEach((existingUser) => {
+  if (
+    Number(existingUser.id) !== Number(user.id) &&
+    existingUser.fcmToken === fcmToken
+  ) {
+    delete existingUser.fcmToken;
+    delete existingUser.fcmTokenUpdatedAt;
+  }
+});
     user.fcmToken = fcmToken;
     user.language = normalizeLanguage(language);
     user.fcmTokenUpdatedAt = nowIso();
