@@ -159,12 +159,22 @@ app.post(
 
         writeJson(offersFile, offers);
         writeJson(shipmentsFile, shipments);
+const carrierNotificationTitle = t(
+  offer.carrierId,
+  'Kontakt je otključan',
+  'Contact unlocked',
+);
 
+const carrierNotificationMessage = t(
+  offer.carrierId,
+  'Sada možete pristupiti dogovoru.',
+  'You can now access the agreement details.',
+);
         addNotification({
           userId: offer.carrierId,
           type: 'contact_unlocked',
-          title: 'Kontakt je otključan',
-          message: 'Sada možete pristupiti dogovoru.',
+          title: carrierNotificationTitle,
+          message: carrierNotificationMessage,
           shipmentId: shipment.id,
           offerId: offer.id,
           createdBy: offer.carrierId,
@@ -173,13 +183,22 @@ app.post(
             stripeSessionId: session.id,
           },
         });
+const senderNotificationTitle = t(
+  shipment.senderId,
+  'TeReT vas je povezao',
+  'TeReT connected you',
+);
 
+const senderNotificationMessage = t(
+  shipment.senderId,
+  'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati.',
+  'The accepted carrier can now see your contact details and contact you.',
+);
         addNotification({
           userId: shipment.senderId,
           type: 'carrier_contact_unlocked',
-          title: 'TeReT vas je povezao',
-          message:
-            'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati.',
+         title: senderNotificationTitle,
+         message: senderNotificationMessage,
           shipmentId: shipment.id,
           offerId: offer.id,
           createdBy: offer.carrierId,
@@ -191,8 +210,8 @@ app.post(
 
         sendPushNotificationToUser(
           offer.carrierId,
-          'Kontakt je otključan',
-          'Sada možete pristupiti dogovoru.',
+         carrierNotificationTitle,
+         carrierNotificationMessage,
           {
             type: 'contact_unlocked',
             shipmentId: shipment.id,
@@ -202,8 +221,8 @@ app.post(
 
         sendPushNotificationToUser(
           shipment.senderId,
-          'TeReT vas je povezao',
-          'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati.',
+          senderNotificationTitle,
+          senderNotificationMessage,
           {
             type: 'carrier_contact_unlocked',
             shipmentId: shipment.id,
@@ -431,7 +450,15 @@ function normalizeRole(role) {
   if (value === 'transporter') return 'carrier';
   return value;
 }
+function normalizeLanguage(language) {
+  const value = normalizeString(language).toLowerCase();
 
+  if (value === 'en') {
+    return 'en';
+  }
+
+  return 'hr';
+}
 function createToken(user) {
   return jwt.sign(
     {
@@ -566,6 +593,19 @@ function addNotification({
 
   return notification;
 }
+function t(userId, hr, en) {
+  const users = readJson(usersFile);
+
+  const user = users.find(
+    (u) => Number(u.id) === Number(userId)
+  );
+
+  if (user?.language === 'en') {
+    return en;
+  }
+
+  return hr;
+}
 async function sendPushNotificationToUser(
   userId,
   title,
@@ -648,13 +688,22 @@ function addOutbidNotifications({ offers, shipment, currentCarrierId, currentOff
     if (notifiedCarrierIds.has(carrierId)) return;
 
     notifiedCarrierIds.add(carrierId);
+const notificationTitle = t(
+  carrierId,
+  'Ponuda više nije najniža',
+  'Your offer is no longer the lowest',
+);
 
+const notificationMessage = t(
+  carrierId,
+  'Vaša ponuda više nije najniža. Pošaljite novu ponudu kako biste ostali konkurentni.',
+  'Your offer is no longer the lowest. Submit a new offer to remain competitive.',
+);
     addNotification({
       userId: carrierId,
       type: 'offer_outbid',
-      title: 'Ponuda više nije najniža',
-      message:
-        'Vaša ponuda više nije najniža. Pošaljite novu ponudu kako biste ostali konkurentni.',
+      title: notificationTitle,
+      message: notificationMessage,
       shipmentId: shipment.id,
       offerId: offer.id,
       createdBy: currentCarrierId,
@@ -663,10 +712,10 @@ function addOutbidNotifications({ offers, shipment, currentCarrierId, currentOff
         currentOfferId,
       },
     });
-    sendPushNotificationToUser(
-      carrierId,
-      'Ponuda više nije najniža',
-      'Vaša ponuda više nije najniža. Pošaljite novu ponudu kako biste ostali konkurentni.',
+   sendPushNotificationToUser(
+     carrierId,
+     notificationTitle,
+     notificationMessage,
       {
         type: 'offer_outbid',
         shipmentId: shipment.id,
@@ -692,32 +741,47 @@ function addNewShipmentNotifications({ users, shipment, createdBy }) {
     }))
   );
 
-  carriers.forEach((carrier) => {
-    addNotification({
-      userId: carrier.id,
-      type: 'new_shipment',
-      title: 'Novi teret',
-      message: `Objavljen je novi teret: ${shipment.mjesto_utovara} → ${shipment.mjesto_istovara}`,
-      shipmentId: shipment.id,
-      createdBy,
-      meta: {
-        naziv_tereta: shipment.naziv_tereta,
-        mjesto_utovara: shipment.mjesto_utovara,
-        mjesto_istovara: shipment.mjesto_istovara,
-        rok_utovara: shipment.rok_utovara,
-      },
-    });
+ carriers.forEach((carrier) => {
+   const notificationTitle = t(
+     carrier.id,
+     'Novi teret',
+     'New shipment',
+   );
 
-    sendPushNotificationToUser(
-      carrier.id,
-      'Novi teret',
-      `${shipment.mjesto_utovara} → ${shipment.mjesto_istovara}`,
-      {
-        type: 'new_shipment',
-        shipmentId: shipment.id,
-      }
-    );
-  });
+   const notificationMessage = t(
+     carrier.id,
+     `Objavljen je novi teret: ${shipment.mjesto_utovara} → ${shipment.mjesto_istovara}`,
+     `A new shipment has been posted: ${shipment.mjesto_utovara} → ${shipment.mjesto_istovara}`,
+   );
+
+   addNotification({
+     userId: carrier.id,
+     type: 'new_shipment',
+     title: notificationTitle,
+     message: notificationMessage,
+     shipmentId: shipment.id,
+     createdBy,
+     meta: {
+       naziv_tereta: shipment.naziv_tereta,
+       mjesto_utovara: shipment.mjesto_utovara,
+       mjesto_istovara: shipment.mjesto_istovara,
+       rok_utovara: shipment.rok_utovara,
+     },
+   });
+
+   sendPushNotificationToUser(
+     carrier.id,
+     notificationTitle,
+     notificationMessage,
+     {
+       type: 'new_shipment',
+       shipmentId: shipment.id,
+     },
+   );
+ });
+
+
+
 }
 
 
@@ -1550,7 +1614,7 @@ app.get('/me', authMiddleware, (req, res) => {
 
 app.post('/fcm-token', authMiddleware, (req, res) => {
   try {
-    const { fcmToken } = req.body;
+    const { fcmToken, language } = req.body;
 
     if (!fcmToken || typeof fcmToken !== 'string') {
       return res.status(400).json({
@@ -1571,12 +1635,15 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
     }
 
     user.fcmToken = fcmToken;
+    user.language = normalizeLanguage(language);
     user.fcmTokenUpdatedAt = nowIso();
+    user.languageUpdatedAt = nowIso();
 
     writeJson(usersFile, users);
 
     res.json({
       success: true,
+      language: user.language,
     });
   } catch (error) {
     console.error('Greška /fcm-token:', error);
@@ -1586,6 +1653,9 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
     });
   }
 });
+
+
+
 // ================= SHIPMENTS =================
 
 app.put('/shipments/:id', authMiddleware, (req, res) => {
@@ -2658,12 +2728,22 @@ if (forbiddenContactPattern.test(offerMessage)) {
       });
 
       writeJson(offersFile, offers);
+const updatedOfferNotificationTitle = t(
+  shipment.senderId,
+  'Ponuda ažurirana',
+  'Offer updated',
+);
 
+const updatedOfferNotificationMessage = t(
+  shipment.senderId,
+  'Prijevoznik je ažurirao svoju ponudu za vaš teret.',
+  'A carrier has updated their offer for your shipment.',
+);
       addNotification({
         userId: shipment.senderId,
         type: 'offer_updated',
-        title: 'Ponuda ažurirana',
-        message: 'Prijevoznik je ažurirao svoju ponudu za vaš teret.',
+       title: updatedOfferNotificationTitle,
+       message: updatedOfferNotificationMessage,
         shipmentId: shipment.id,
         offerId: existingMyOffer.id,
         createdBy: req.user.id,
@@ -2707,20 +2787,30 @@ if (forbiddenContactPattern.test(offerMessage)) {
 
     offers.unshift(newOffer);
     writeJson(offersFile, offers);
+const notificationTitle = t(
+  shipment.senderId,
+  'Nova ponuda',
+  'New offer',
+);
 
+const notificationMessage = t(
+  shipment.senderId,
+  'Zaprimili ste novu ponudu za vaš teret.',
+  'You have received a new offer for your shipment.',
+);
     addNotification({
       userId: shipment.senderId,
       type: 'offer_created',
-      title: 'Nova ponuda',
-      message: 'Zaprimili ste novu ponudu za vaš teret.',
+      title: notificationTitle,
+      message: notificationMessage,
       shipmentId: shipment.id,
       offerId: newOffer.id,
       createdBy: req.user.id,
     });
     sendPushNotificationToUser(
       shipment.senderId,
-      'Nova ponuda',
-      'Zaprimili ste novu ponudu za vaš teret.',
+      notificationTitle,
+      notificationMessage,
       {
         type: 'offer_created',
         shipmentId: shipment.id,
@@ -2930,13 +3020,22 @@ const offers = readJson(offersFile);
 
     writeJson(offersFile, offers);
     writeJson(shipmentsFile, shipments);
+const acceptedNotificationTitle = t(
+  offer.carrierId,
+  'Dobili ste posao',
+  'You got the job',
+);
 
+const acceptedNotificationMessage = t(
+  offer.carrierId,
+  'Vaša ponuda je prihvaćena. Za nastavak platite naknadu putem Stripe Checkouta kako biste otključali kontakt podatke.',
+  'Your offer has been accepted. Continue to Stripe Checkout and pay the fee to unlock the contact details.',
+);
     addNotification({
       userId: offer.carrierId,
       type: 'offer_accepted',
-      title: 'Dobili ste posao',
-      message:
-        'Vaša ponuda je prihvaćena. Za nastavak aktivirajte  Stripe račun i platite naknadu kako biste otključali kontakt podatke.',
+     title: acceptedNotificationTitle,
+     message: acceptedNotificationMessage,
       shipmentId: shipment.id,
       offerId: offer.id,
       createdBy: req.user.id,
@@ -2944,8 +3043,8 @@ const offers = readJson(offersFile);
 
 sendPushNotificationToUser(
   offer.carrierId,
-  'Dobili ste posao',
-  'Za nastavak aktivirajte Stripe račun i platite naknadu kako biste otključali kontakt podatke.',
+  acceptedNotificationTitle,
+  acceptedNotificationMessage,
   {
     type: 'offer_accepted',
     shipmentId: shipment.id,
@@ -2953,11 +3052,22 @@ sendPushNotificationToUser(
   }
 );
 rejectedOffers.forEach((rejectedOffer) => {
+const rejectedNotificationTitle = t(
+  rejectedOffer.carrierId,
+  'Licitacija je završena',
+  'Auction ended',
+);
+
+const rejectedNotificationMessage = t(
+  rejectedOffer.carrierId,
+  'Drugi prijevoznik je odabran za ovaj prijevoz.',
+  'Another carrier was selected for this shipment.',
+);
   addNotification({
     userId: rejectedOffer.carrierId,
     type: 'offer_rejected',
-    title: 'Licitacija je završena',
-    message: 'Drugi prijevoznik je odabran za ovaj prijevoz.',
+    title: rejectedNotificationTitle,
+    message: rejectedNotificationMessage,
     shipmentId: shipment.id,
     offerId: rejectedOffer.id,
     createdBy: req.user.id,
@@ -2965,8 +3075,8 @@ rejectedOffers.forEach((rejectedOffer) => {
 
   sendPushNotificationToUser(
     rejectedOffer.carrierId,
-    'Licitacija je završena',
-    'Drugi prijevoznik je odabran za ovaj prijevoz.',
+    rejectedNotificationTitle,
+    rejectedNotificationMessage,
     {
       type: 'offer_rejected',
       shipmentId: shipment.id,
@@ -3024,11 +3134,22 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
     );
 
     if (acceptedOffer) {
+    const deliveryNotificationTitle = t(
+      acceptedOffer.carrierId,
+      'Prijevoz dogovoren',
+      'Transport completed',
+    );
+
+    const deliveryNotificationMessage = t(
+      acceptedOffer.carrierId,
+      'Naručitelj je potvrdio da je prijevoz dogovoren.',
+      'The sender confirmed that the transport was completed.',
+    );
       addNotification({
         userId: acceptedOffer.carrierId,
         type: 'delivery_confirmed',
-        title: 'Prijevoz dogovoren',
-        message: 'Naručitelj je potvrdio da je prijevoz dogovoren.',
+        title: deliveryNotificationTitle,
+        message: deliveryNotificationMessage,
         shipmentId: shipment.id,
         offerId: acceptedOffer.id,
         createdBy: req.user.id,
