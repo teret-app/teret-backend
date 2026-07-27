@@ -1427,7 +1427,7 @@ app.post('/login', async (req, res) => {
     });
   }
 });
-    cons
+    const
 app.post('/forgot-password', async (req, res) => {
   try {
     const email = normalizeString(req.body.email).toLowerCase();
