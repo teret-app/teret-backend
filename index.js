@@ -1462,23 +1462,49 @@ app.post('/forgot-password', async (req, res) => {
     await mailTransporter.sendMail({
       from: `"TeReT" <${process.env.MAIL_USER}>`,
       to: user.email,
-      subject: 'TeReT – promjena lozinke',
-      html: `
-        <p>Zaprimili smo zahtjev za promjenu lozinke.</p>
+     subject: apiText(
+       req,
+       'TeReT – promjena lozinke',
+       'TeReT – Password reset',
+     ),
+     html: `
+       <p>${
+         apiText(
+           req,
+           'Zaprimili smo zahtjev za promjenu lozinke.',
+           'We received a password reset request.',
+         )
+       }</p>
 
-        <p>
-          <a href="${resetUrl}">
-            Postavi novu lozinku
-          </a>
-        </p>
+       <p>
+         <a href="${resetUrl}">
+           ${
+             apiText(
+               req,
+               'Postavi novu lozinku',
+               'Set a new password',
+             )
+           }
+         </a>
+       </p>
 
-        <p>Poveznica vrijedi 30 minuta.</p>
+       <p>${
+         apiText(
+           req,
+           'Poveznica vrijedi 30 minuta.',
+           'This link is valid for 30 minutes.',
+         )
+       }</p>
 
-        <p>
-          Ako niste tražili promjenu lozinke,
-          zanemarite ovu poruku.
-        </p>
-      `,
+       <p>${
+         apiText(
+           req,
+           'Ako niste tražili promjenu lozinke, zanemarite ovu poruku.',
+           'If you did not request a password reset, please ignore this email.',
+         )
+       }</p>
+     `,
+
     });
 
     return res.json({
