@@ -1457,7 +1457,13 @@ app.post('/forgot-password', async (req, res) => {
     writeJson(usersFile, users);
 
     const resetUrl =
-      `${APP_URL}/reset-password?token=${resetToken}`;
+      `${APP_URL}/reset-password?token=${resetToken}&lang=${
+        normalizeString(req.headers['accept-language'])
+          .toLowerCase()
+          .startsWith('en')
+            ? 'en'
+            : 'hr'
+      }`;
 
     await mailTransporter.sendMail({
       from: `"TeReT" <${process.env.MAIL_USER}>`,
@@ -1524,14 +1530,23 @@ app.post('/forgot-password', async (req, res) => {
 });
 app.get('/reset-password', (req, res) => {
   const token = normalizeString(req.query.token);
+const language =
+  normalizeString(req.query.lang).toLowerCase() === 'en'
+    ? 'en'
+    : 'hr';
 
+const pageText = (hr, en) =>
+  language === 'en' ? en : hr;
   res.send(`
     <!DOCTYPE html>
-    <html lang="hr">
+    <html lang="${language}">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>TeReT - Nova lozinka</title>
+      <title>${pageText(
+        'TeReT - Nova lozinka',
+        'TeReT - New password'
+      )}</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -1571,12 +1586,18 @@ app.get('/reset-password', (req, res) => {
 
     <body>
       <div class="card">
-      <h2>Postavite novu lozinku</h2>
+      <h2>${pageText(
+        'Postavite novu lozinku',
+        'Set a new password'
+      )}</h2>
 
       <form method="POST" action="/reset-password">
         <input type="hidden" name="token" value="${token}">
 
-        <label>Nova lozinka</label>
+        <label>${pageText(
+          'Nova lozinka',
+          'New password'
+        )}</label>
         <div style="position:relative;margin-bottom:16px;">
           <input
             id="password"
@@ -1600,7 +1621,10 @@ app.get('/reset-password', (req, res) => {
           >👁️</span>
         </div>
 
-        <label>Ponovite novu lozinku</label>
+        <label>${pageText(
+          'Ponovite novu lozinku',
+          'Confirm new password'
+        )}</label>
         <div style="position:relative;margin-bottom:16px;">
           <input
             id="confirmPassword"
@@ -1625,7 +1649,10 @@ app.get('/reset-password', (req, res) => {
         </div>
 
         <button type="submit">
-          Spremi novu lozinku
+          ${pageText(
+            'Spremi novu lozinku',
+            'Save new password'
+          )}
         </button>
       </form>
 
