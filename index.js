@@ -2460,9 +2460,13 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
 app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
-      return res.status(403).json({
-        message: 'Samo naručitelj može ponovno objaviti teret.',
-      });
+    return res.status(403).json({
+      message: apiText(
+        req,
+        'Samo naručitelj može ponovno objaviti teret.',
+        'Only the sender can repost a shipment.'
+      ),
+    });
     }
 
     const shipments = readJson(shipmentsFile);
@@ -2475,28 +2479,40 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
 
     if (!oldShipment) {
       return res.status(404).json({
-        message: 'Teret nije pronađen.',
+        message: apiText(
+          req,
+          'Teret nije pronađen.',
+          'Shipment not found.'
+        ),
       });
     }
 
-    if (Number(oldShipment.senderId) !== Number(req.user.id)) {
-      return res.status(403).json({
-        message: 'Nemate pravo ponovno objaviti ovaj teret.',
-      });
-    }
 
+
+  if (Number(oldShipment.senderId) !== Number(req.user.id)) {
+    return res.status(403).json({
+      message: apiText(
+        req,
+        'Nemate pravo ponovno objaviti ovaj teret.',
+        'You are not allowed to repost this shipment.'
+      ),
+    });
+  }
     const oldOffers = offers.filter(
       (o) =>
         Number(o.shipmentId) === Number(oldShipment.id) &&
         o.status !== 'rejected'
     );
 
-    if (oldOffers.length > 0) {
-      return res.status(400).json({
-        message:
-          'Teret se može ponovno objaviti samo ako nije bilo ponuda.',
-      });
-    }
+   if (oldOffers.length > 0) {
+     return res.status(400).json({
+       message: apiText(
+         req,
+         'Teret se može ponovno objaviti samo ako nije bilo ponuda.',
+         'A shipment can only be reposted if it had no offers.'
+       ),
+     });
+   }
     const existingActiveRepost = shipments.find((shipment) => {
       if (
         Number(shipment.repostedFromId) !== Number(oldShipment.id) ||
@@ -2521,13 +2537,16 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
       return isActiveStatus && auctionStillRunning;
     });
 
-    if (existingActiveRepost) {
-      return res.status(409).json({
-        message:
-          'Ovaj teret je već ponovno objavljen i licitacija je još aktivna.',
-        shipmentId: existingActiveRepost.id,
-      });
-    }
+   if (existingActiveRepost) {
+     return res.status(409).json({
+       message: apiText(
+         req,
+         'Ovaj teret je već ponovno objavljen i licitacija je još aktivna.',
+         'This shipment has already been reposted and the auction is still active.'
+       ),
+       shipmentId: existingActiveRepost.id,
+     });
+   }
     const trajanjeLicitacije =
       oldShipment.trajanje_licitacije || '24 sata';
 
@@ -2592,16 +2611,24 @@ if (
     });
 
     res.status(201).json({
-      message: 'Teret je ponovno objavljen.',
+      message: apiText(
+        req,
+        'Teret je ponovno objavljen.',
+        'Shipment reposted successfully.'
+      ),
       shipment: newShipment,
     });
-  } catch (error) {
-    console.error('Greška /shipments/:id/repost:', error);
+ } catch (error) {
+   console.error('Greška /shipments/:id/repost:', error);
 
-    res.status(500).json({
-      message: 'Greška na serveru.',
-    });
-  }
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
 });
 
 app.get('/shipments/:id', authMiddleware, (req, res) => {
@@ -2615,9 +2642,15 @@ app.get('/shipments/:id', authMiddleware, (req, res) => {
       (s) => Number(s.id) === Number(req.params.id)
     );
 
-    if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
-    }
+   if (!shipment) {
+     return res.status(404).json({
+       message: apiText(
+         req,
+         'Teret nije pronađen.',
+         'Shipment not found.'
+       ),
+     });
+   }
 const shipmentOffers = offers.filter(
   (o) => Number(o.shipmentId) === Number(shipment.id)
 );
@@ -2780,10 +2813,17 @@ broj_ponuda: offersCount,
         acceptedOffer.contactUnlocked !== true &&
     acceptedOffer.commissionPaid !== true,
     });
-  } catch (error) {
-    console.error('Greška /shipments/:id:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+ } catch (error) {
+   console.error('Greška /shipments/:id:', error);
+
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
 });
 
 app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
@@ -2794,18 +2834,30 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
     const ratings = readJson(ratingsFile);
 
     const shipment = shipments.find((s) => Number(s.id) === Number(req.params.id));
-    if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
-    }
+   if (!shipment) {
+     return res.status(404).json({
+       message: apiText(
+         req,
+         'Teret nije pronađen.',
+         'Shipment not found.'
+       ),
+     });
+   }
 
     const isSenderOwner =
       req.user.role === 'sender' && Number(shipment.senderId) === Number(req.user.id);
 
     const isCarrier = isCarrierRole(req.user.role);
 
-    if (!isSenderOwner && !isCarrier) {
-      return res.status(403).json({ message: 'Nemate pristup tijeku licitacije.' });
-    }
+   if (!isSenderOwner && !isCarrier) {
+     return res.status(403).json({
+       message: apiText(
+         req,
+         'Nemate pristup tijeku licitacije.',
+         'You do not have access to the auction progress.'
+       ),
+     });
+   }
 
     const bidHistory = buildBidHistoryForViewer({
       shipment,
@@ -2848,28 +2900,39 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
           ? toNumber(myOffer.amount, 0) > toNumber(lowestOffer, 0)
           : false,
 
-      myOfferBadge:
-        myOffer && lowestOffer !== null
-          ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
-            ? 'Najniža'
-            : 'Nadmašena'
-          : null,
+     myOfferBadge:
+       myOffer && lowestOffer !== null
+         ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
+           ? apiText(req, 'Najniža', 'Lowest')
+           : apiText(req, 'Nadmašena', 'Outbid')
+         : null,
       bidHistory,
     });
-  } catch (error) {
-    console.error('Greška /shipments/:id/bid-history:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+ } catch (error) {
+   console.error('Greška /shipments/:id/bid-history:', error);
+
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
 });
 
 // ================= OFFERS =================
 app.put('/offers/:id/hide', authMiddleware, (req, res) => {
   try {
-    if (!isCarrierRole(req.user.role)) {
-      return res.status(403).json({
-        message: 'Samo prijevoznik može ukloniti ponudu iz povijesti.',
-      });
-    }
+   if (!isCarrierRole(req.user.role)) {
+     return res.status(403).json({
+       message: apiText(
+         req,
+         'Samo prijevoznik može ukloniti ponudu iz povijesti.',
+         'Only the carrier can remove an offer from history.'
+       ),
+     });
+   }
 
     const offers = readJson(offersFile);
 
@@ -2877,39 +2940,62 @@ app.put('/offers/:id/hide', authMiddleware, (req, res) => {
       (o) => Number(o.id) === Number(req.params.id)
     );
 
-    if (!offer) {
-      return res.status(404).json({
-        message: 'Ponuda nije pronađena.',
-      });
-    }
+   if (!offer) {
+     return res.status(404).json({
+       message: apiText(
+         req,
+         'Ponuda nije pronađena.',
+         'Offer not found.'
+       ),
+     });
+   }
 
-    if (Number(offer.carrierId) !== Number(req.user.id)) {
-      return res.status(403).json({
-        message: 'Nemate pristup ovoj ponudi.',
-      });
-    }
+  if (Number(offer.carrierId) !== Number(req.user.id)) {
+    return res.status(403).json({
+      message: apiText(
+        req,
+        'Nemate pristup ovoj ponudi.',
+        'You do not have access to this offer.'
+      ),
+    });
+  }
 
     offer.hiddenByCarrier = true;
     offer.hiddenByCarrierAt = nowIso();
 
     writeJson(offersFile, offers);
 
-    res.json({
-      message: 'Ponuda je uklonjena iz povijesti.',
-    });
-  } catch (error) {
-    console.error('Greška /offers/:id/hide:', error);
-    res.status(500).json({
-      message: 'Greška na serveru.',
-    });
-      }
+   res.json({
+     message: apiText(
+       req,
+       'Ponuda je uklonjena iz povijesti.',
+       'Offer removed from history.'
+     ),
+   });
+ } catch (error) {
+   console.error('Greška /offers/:id/hide:', error);
+
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
     });
 
 app.post('/offers', authMiddleware, (req, res) => {
   try {
-    if (!isCarrierRole(req.user.role)) {
-      return res.status(403).json({ message: 'Samo prijevoznik može slati ponude.' });
-    }
+   if (!isCarrierRole(req.user.role)) {
+     return res.status(403).json({
+       message: apiText(
+         req,
+         'Samo prijevoznik može slati ponude.',
+         'Only the carrier can submit offers.'
+       ),
+     });
+   }
 
     const offers = readJson(offersFile);
     const shipments = readJson(shipmentsFile);
@@ -3248,12 +3334,12 @@ app.get('/my-offers', authMiddleware, (req, res) => {
           ? toNumber(offer.amount, 0) > toNumber(lowestOffer, 0)
           : false,
 
-      myOfferBadge:
-        lowestOffer !== null
-          ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
-            ? 'Najniža'
-            : 'Nadmašena'
-          : null,
+     myOfferBadge:
+       lowestOffer !== null
+         ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
+           ? apiText(req, 'Najniža', 'Lowest')
+           : apiText(req, 'Nadmašena', 'Outbid')
+         : null,
 
       shipment: shipment
         ? {
@@ -3490,21 +3576,36 @@ const rejectedNotificationMessage = t(
     }
   );
 });
-    res.json({
-      message: 'Ponuda je uspješno prihvaćena.',
-      offer,
-      shipment,
-    });
-  } catch (error) {
-    console.error('Greška /offers/:id/accept:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+  res.json({
+    message: apiText(
+      req,
+      'Ponuda je uspješno prihvaćena.',
+      'The offer was accepted successfully.'
+    ),
+    offer,
+    shipment,
+  });
+ } catch (error) {
+   console.error('Greška /offers/:id/accept:', error);
+
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
 });
 
 // ================= CONTACT UNLOCK / COMMISSION =================
 app.post('/shipments/:id/pay-commission', authMiddleware, (req, res) => {
   return res.status(410).json({
-    message: 'Plaćanje se sada izvršava isključivo preko Stripe Checkouta.',
+    message: apiText(
+      req,
+      'Plaćanje se sada izvršava isključivo preko Stripe Checkouta.',
+      'Payments are now processed exclusively through Stripe Checkout.'
+    ),
   });
 });
 
