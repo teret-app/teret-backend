@@ -1907,7 +1907,13 @@ app.get('/me', authMiddleware, (req, res) => {
   const user = getUserById(req.user.id);
 
   if (!user) {
-    return res.status(404).json({ message: 'Korisnik nije pronađen.' });
+    return res.status(404).json({
+      message: apiText(
+        req,
+        'Korisnik nije pronađen.',
+        'User not found.'
+      ),
+    });
   }
 
   res.json({
@@ -1920,6 +1926,7 @@ app.get('/me', authMiddleware, (req, res) => {
     emailVerified: user.emailVerified === true,
   });
 });
+
 // ================= FCM =================
 
 app.post('/fcm-token', authMiddleware, (req, res) => {
@@ -1928,7 +1935,11 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
 
     if (!fcmToken || typeof fcmToken !== 'string') {
       return res.status(400).json({
-        message: 'FCM token je obavezan.',
+        message: apiText(
+          req,
+          'FCM token je obavezan.',
+          'FCM token is required.'
+        ),
       });
     }
 
@@ -1940,18 +1951,24 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        message: 'Korisnik nije pronađen.',
+        message: apiText(
+          req,
+          'Korisnik nije pronađen.',
+          'User not found.'
+        ),
       });
     }
-users.forEach((existingUser) => {
-  if (
-    Number(existingUser.id) !== Number(user.id) &&
-    existingUser.fcmToken === fcmToken
-  ) {
-    delete existingUser.fcmToken;
-    delete existingUser.fcmTokenUpdatedAt;
-  }
-});
+
+    users.forEach((existingUser) => {
+      if (
+        Number(existingUser.id) !== Number(user.id) &&
+        existingUser.fcmToken === fcmToken
+      ) {
+        delete existingUser.fcmToken;
+        delete existingUser.fcmTokenUpdatedAt;
+      }
+    });
+
     user.fcmToken = fcmToken;
     user.language = normalizeLanguage(language);
     user.fcmTokenUpdatedAt = nowIso();
@@ -1967,12 +1984,14 @@ users.forEach((existingUser) => {
     console.error('Greška /fcm-token:', error);
 
     res.status(500).json({
-      message: 'Greška na serveru.',
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
     });
   }
 });
-
-
 
 // ================= SHIPMENTS =================
 
