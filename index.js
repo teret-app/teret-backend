@@ -34,7 +34,13 @@ const mailTransporter = nodemailer.createTransport({
   },
 });
 
-async function sendVerificationEmail(email, verificationUrl) {
+async function sendVerificationEmail(
+  email,
+  verificationUrl,
+  language = 'hr'
+) {
+const emailText = (hr, en) =>
+  language === 'en' ? en : hr;
   try {
     console.log('ŠALJEM EMAIL NA:', email);
     console.log('APP_URL:', APP_URL);
@@ -47,16 +53,30 @@ async function sendVerificationEmail(email, verificationUrl) {
     const result = await mailTransporter.sendMail({
       from: `"TeReT" <${process.env.MAIL_USER}>`,
       to: email,
-      subject: 'Potvrdite svoju email adresu - TeReT',
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Dobrodošli u TeReT</h2>
-          <p>Kliknite za potvrdu računa:</p>
-          <a href="${verificationUrl}">
-            Potvrdi račun
-          </a>
-        </div>
-      `,
+     subject: emailText(
+       'Potvrdite svoju email adresu - TeReT',
+       'Verify your email address - TeReT'
+     ),
+     html: `
+       <div style="font-family: Arial, sans-serif;">
+         <h2>${emailText(
+           'Dobrodošli u TeReT',
+           'Welcome to TeReT'
+         )}</h2>
+
+         <p>${emailText(
+           'Kliknite za potvrdu računa:',
+           'Click below to verify your account:'
+         )}</p>
+
+         <a href="${verificationUrl}">
+           ${emailText(
+             'Potvrdi račun',
+             'Verify account'
+           )}
+         </a>
+       </div>
+     `,
     });
 
     console.log('EMAIL POSLAN:', result.messageId);
@@ -86,13 +106,25 @@ app.post(
   express.raw({ type: 'application/json' }),
   (req, res) => {
     if (!stripe) {
-      return res.status(500).send('Stripe nije konfiguriran.');
+     return res.status(500).send(
+       apiText(
+         req,
+         'Stripe nije konfiguriran.',
+         'Stripe is not configured.'
+       )
+     );
     }
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-      return res.status(500).send('STRIPE_WEBHOOK_SECRET nije postavljen.');
+     return res.status(500).send(
+       apiText(
+         req,
+         'STRIPE_WEBHOOK_SECRET nije postavljen.',
+         'STRIPE_WEBHOOK_SECRET is not configured.'
+       )
+     );
     }
 
     const signature = req.headers['stripe-signature'];
@@ -107,7 +139,13 @@ app.post(
       );
     } catch (error) {
       console.error('Stripe webhook signature error:', error.message);
-      return res.status(400).send(`Webhook error: ${error.message}`);
+      return res.status(400).send(
+        `${apiText(
+          req,
+          'Greška webhoka',
+          'Webhook error'
+        )}: ${error.message}`
+      );
     }
 
     try {
@@ -234,7 +272,13 @@ const senderNotificationMessage = t(
       res.json({ received: true });
     } catch (error) {
       console.error('Stripe webhook obrada greška:', error);
-      res.status(500).send('Webhook obrada nije uspjela.');
+      res.status(500).send(
+        apiText(
+          req,
+          'Webhook obrada nije uspjela.',
+          'Webhook processing failed.'
+        )
+      );
     }
   }
 );
@@ -1127,21 +1171,36 @@ function cleanupUnverifiedUsers() {
 // ================= ROOT =================
 
 app.get('/', (req, res) => {
-  res.json({ message: 'TeReT backend radi.' });
+ res.json({
+   message: apiText(
+     req,
+     'TeReT backend radi.',
+     'TeReT backend is running.'
+   ),
+ });
 });
 app.get('/payment-success', (req, res) => {
   const shipmentId = req.query.shipmentId;
+const language =
+  normalizeString(req.query.lang).toLowerCase() === 'en'
+    ? 'en'
+    : 'hr';
 
+const pageText = (hr, en) =>
+  language === 'en' ? en : hr;
   res.send(`
-    <!DOCTYPE html>
+   <html lang="${language}">
     <html>
       <head>
         <meta charset="UTF-8">
-        <title>Plaćanje uspješno</title>
+        <title>${pageText(
+          'Plaćanje uspješno',
+          'Payment successful'
+        )}</title>
 
         <script>
           window.location.replace(
-            "teret://payment-success?shipmentId=${shipmentId}"
+            "teret://payment-success?shipmentId=${shipmentId}&lang=${language}"
           );
 
           setTimeout(() => {
@@ -1151,19 +1210,28 @@ app.get('/payment-success', (req, res) => {
       </head>
 
       <body style="font-family:Arial;text-align:center;padding:40px;">
-        <h2>✅ Plaćanje uspješno</h2>
-        <p>Vraćamo vas u aplikaciju TeReT...</p>
+        <h2>✅ ${pageText(
+          'Plaćanje uspješno',
+          'Payment successful'
+        )}</h2>
+        <p>${pageText(
+          'Vraćamo vas u aplikaciju TeReT...',
+          'Returning you to the TeReT app...'
+        )}</p>
 
         <a
           id="openApp"
-          href="teret://payment-success?shipmentId=${shipmentId}"
+          href="teret://payment-success?shipmentId=${shipmentId}&lang=${language}"
           style="display:none;
                  padding:12px 20px;
                  background:#2563eb;
                  color:white;
                  text-decoration:none;
                  border-radius:8px;">
-          Otvori TeReT
+          ${pageText(
+            'Otvori TeReT',
+            'Open TeReT'
+          )}
         </a>
       </body>
     </html>
@@ -1259,7 +1327,15 @@ app.post('/register', async (req, res) => {
       writeJson(usersFile, users);
 
       const verificationUrl = `${APP_URL}/verify-email/${verificationToken}`;
-await sendVerificationEmail(email, verificationUrl);
+await sendVerificationEmail(
+  email,
+  verificationUrl,
+  normalizeString(req.headers['accept-language'])
+    .toLowerCase()
+    .startsWith('en')
+      ? 'en'
+      : 'hr'
+);
 
 res.status(201).json({
   message: apiText(
@@ -1432,7 +1508,12 @@ app.post('/resend-verification-email', async (req, res) => {
 
     await sendVerificationEmail(
       email,
-      verificationUrl
+      verificationUrl,
+      normalizeString(req.headers['accept-language'])
+        .toLowerCase()
+        .startsWith('en')
+          ? 'en'
+          : 'hr'
     );
 
     return res.json({
@@ -1868,8 +1949,15 @@ app.post('/reset-password', async (req, res) => {
 
     if (!user) {
       return res.status(400).send(`
-        <h3>Poveznica je neispravna ili je istekla.</h3>
-        <p>Ponovno zatražite promjenu lozinke u aplikaciji TeReT.</p>
+        <h3>${pageText(
+          'Poveznica je neispravna ili je istekla.',
+          'The link is invalid or has expired.'
+        )}</h3>
+
+        <p>${pageText(
+          'Ponovno zatražite promjenu lozinke u aplikaciji TeReT.',
+          'Request another password reset in the TeReT app.'
+        )}</p>
       `);
     }
 
@@ -1880,27 +1968,44 @@ app.post('/reset-password', async (req, res) => {
 
     writeJson(usersFile, users);
 
-    return res.send(`
-      <!DOCTYPE html>
-      <html lang="hr">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Lozinka promijenjena</title>
-      </head>
+   return res.send(`
+     <!DOCTYPE html>
+     <html lang="${language}">
+     <head>
+       <meta charset="UTF-8">
+       <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1.0"
+       >
 
-      <body style="font-family: Arial; padding: 30px; text-align: center;">
-        <h2>Lozinka je uspješno promijenjena.</h2>
-        <p>Sada se možete vratiti u aplikaciju TeReT i prijaviti novom lozinkom.</p>
-      </body>
-      </html>
-    `);
+       <title>${pageText(
+         'Lozinka promijenjena',
+         'Password changed'
+       )}</title>
+     </head>
+
+     <body style="font-family: Arial; padding: 30px; text-align: center;">
+       <h2>${pageText(
+         'Lozinka je uspješno promijenjena.',
+         'Your password has been changed successfully.'
+       )}</h2>
+
+       <p>${pageText(
+         'Sada se možete vratiti u aplikaciju TeReT i prijaviti novom lozinkom.',
+         'You can now return to the TeReT app and sign in with your new password.'
+       )}</p>
+     </body>
+     </html>
+   `);
   } catch (error) {
     console.error('Greška POST /reset-password:', error);
 
-    return res.status(500).send(
-      '<h3>Greška na serveru. Pokušajte ponovno.</h3>'
-    );
+    return res.status(500).send(`
+      <h3>${pageText(
+        'Greška na serveru. Pokušajte ponovno.',
+        'Server error. Please try again.'
+      )}</h3>
+    `);
   }
 });
 app.get('/me', authMiddleware, (req, res) => {
@@ -2448,14 +2553,23 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
     writeJson(shipmentsFile, shipments);
 
     res.json({
-      message: 'Objava je uklonjena iz povijesti.',
+      message: apiText(
+        req,
+        'Objava je uklonjena iz povijesti.',
+        'The listing was removed from history.'
+      ),
     });
-  } catch (error) {
-    console.error('Greška PUT /shipments/:id/hide:', error);
-    res.status(500).json({
-      message: 'Greška na serveru.',
-    });
-  }
+ } catch (error) {
+   console.error('Greška PUT /shipments/:id/hide:', error);
+
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
 });
 app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
   try {
