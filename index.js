@@ -1975,17 +1975,25 @@ const savedImages = saveShipmentImages(
   rawShipmentImages,
   newShipmentId
 );
-const textForContactCheck = `${req.body.naziv_tereta || req.body.title || ''} ${req.body.opis_tereta || req.body.description || ''}`;
+const textForContactCheck = `${
+  req.body.naziv_tereta || req.body.title || ''
+} ${
+  req.body.opis_tereta || req.body.description || ''
+}`;
 
 const forbiddenContactPattern =
   /(\+?\d[\d\s\-\/().]{6,}\d)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(whatsapp|viber|telegram|signal|messenger|facebook|instagram|gmail|mail|email|e-mail|nazovi|zovi|javi se|kontaktiraj|kontakt|mobitel|telefon|broj)/i;
 
-if (forbiddenContactPattern.test(textForContactCheck)) {
-  return res.status(400).json({
-    message:
-      'Opis tereta ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
-  });
-}
+
+  if (forbiddenContactPattern.test(textForContactCheck)) {
+    return res.status(400).json({
+      message: apiText(
+        req,
+        'Opis tereta ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
+        'The shipment description must not contain contact details, phone numbers, email addresses, or invitations to arrange transport outside the app.',
+      ),
+    });
+  }
     const newShipment = {
       id: newShipmentId,
       senderId: Number(req.user.id),
@@ -2803,21 +2811,42 @@ const forbiddenContactPattern =
 
 if (forbiddenContactPattern.test(offerMessage)) {
   return res.status(400).json({
-    message:
+    message: apiText(
+      req,
       'Poruka ponude ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
+      'The offer message must not contain contact details, phone numbers, email addresses, or invitations to arrange transport outside the app.',
+    ),
   });
 }
-    if (!shipmentId || amount === undefined || amount === null || amount === '') {
-      return res.status(400).json({ message: 'shipmentId i amount su obavezni.' });
-    }
+   if (!shipmentId || amount === undefined || amount === null || amount === '') {
+     return res.status(400).json({
+       message: apiText(
+         req,
+         'Podaci o teretu i iznos ponude su obavezni.',
+         'Shipment details and offer amount are required.',
+       ),
+     });
+   }
 
     const shipment = shipments.find((s) => Number(s.id) === Number(shipmentId));
     if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
+     return res.status(404).json({
+       message: apiText(
+         req,
+         'Teret nije pronađen.',
+         'Shipment not found.',
+       ),
+     });
     }
 
     if (shipment.status !== 'aktivan') {
-      return res.status(400).json({ message: 'Na ovaj teret više nije moguće slati ponude.' });
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Na ovaj teret više nije moguće slati ponude.',
+          'Offers can no longer be submitted for this shipment.',
+        ),
+      });
     }
 
     if (shipment.licitacija_zavrsava_at) {
@@ -2829,9 +2858,13 @@ if (forbiddenContactPattern.test(offerMessage)) {
 
         writeJson(shipmentsFile, shipments);
 
-        return res.status(400).json({
-          message: 'Licitacija je završena. Nije više moguće slati ponude za ovaj teret.',
-        });
+       return res.status(400).json({
+         message: apiText(
+           req,
+           'Licitacija je završena. Nije više moguće slati ponude za ovaj teret.',
+           'The auction has ended. Offers can no longer be submitted for this shipment.',
+         ),
+       });
       }
     }
 
@@ -2842,7 +2875,13 @@ if (forbiddenContactPattern.test(offerMessage)) {
     );
 
     if (existingAcceptedOffer) {
-      return res.status(400).json({ message: 'Ponuda je već prihvaćena za ovaj teret.' });
+     return res.status(400).json({
+       message: apiText(
+         req,
+         'Ponuda je već prihvaćena za ovaj teret.',
+         'An offer has already been accepted for this shipment.',
+       ),
+     });
     }
 
     const existingMyOffer = offers.find(
@@ -2856,15 +2895,25 @@ if (forbiddenContactPattern.test(offerMessage)) {
 
     if (existingMyOffer) {
       if (numericAmount > toNumber(existingMyOffer.amount)) {
-        return res.status(400).json({
-          message: 'Nova ponuda mora biti niža ili jednaka vašoj prethodnoj ponudi.',
-        });
+          return res.status(400).json({
+            message: apiText(
+              req,
+              'Nova ponuda mora biti niža ili jednaka vašoj prethodnoj ponudi.',
+              'The new offer must be lower than or equal to your previous offer.',
+            ),
+          });
+
       }
 
       if (toNumber(existingMyOffer.amount) - numericAmount < 5) {
-        return res.status(400).json({
-          message: `Minimalno sniženje ponude je 5 ${currency}.`,
-        });
+          return res.status(400).json({
+            message: apiText(
+              req,
+              `Minimalno sniženje ponude je 5 ${currency}.`,
+              `The minimum offer reduction is 5 ${currency}.`,
+            ),
+          });
+
       }
 
       if (!Array.isArray(existingMyOffer.bidHistory)) {
@@ -2907,7 +2956,16 @@ const updatedOfferNotificationMessage = t(
         offerId: existingMyOffer.id,
         createdBy: req.user.id,
       });
-
+sendPushNotificationToUser(
+  shipment.senderId,
+  updatedOfferNotificationTitle,
+  updatedOfferNotificationMessage,
+  {
+    type: 'offer_updated',
+    shipmentId: shipment.id,
+    offerId: existingMyOffer.id,
+  }
+);
       addOutbidNotifications({
         offers,
         shipment,
@@ -2915,10 +2973,14 @@ const updatedOfferNotificationMessage = t(
         currentOfferId: existingMyOffer.id,
       });
 
-      return res.json({
-        message: 'Ponuda je uspješno ažurirana.',
-        offer: existingMyOffer,
-      });
+     return res.json({
+       message: apiText(
+         req,
+         'Ponuda je uspješno ažurirana.',
+         'The offer was updated successfully.',
+       ),
+       offer: existingMyOffer,
+     });
     }
 
     const createdAt = nowIso();
@@ -2984,19 +3046,36 @@ const notificationMessage = t(
     });
 
     res.status(201).json({
-      message: 'Ponuda je uspješno poslana.',
+      message: apiText(
+        req,
+        'Ponuda je uspješno poslana.',
+        'The offer was submitted successfully.',
+      ),
       offer: newOffer,
     });
-  } catch (error) {
-    console.error('Greška /offers POST:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+    } catch (error) {
+      console.error('Greška /offers POST:', error);
+
+      res.status(500).json({
+        message: apiText(
+          req,
+          'Greška na serveru.',
+          'Server error.',
+        ),
+      });
+    }
 });
 
 app.get('/my-offers', authMiddleware, (req, res) => {
   try {
     if (!isCarrierRole(req.user.role)) {
-      return res.status(403).json({ message: 'Samo prijevoznik može vidjeti svoje ponude.' });
+      return res.status(403).json({
+        message: apiText(
+          req,
+          'Samo prijevoznik može vidjeti svoje ponude.',
+          'Only a carrier can view their offers.',
+        ),
+      });
     }
 
     const offers = readJson(offersFile);
@@ -3077,7 +3156,13 @@ app.get('/my-offers', authMiddleware, (req, res) => {
     res.json(myOffers);
   } catch (error) {
     console.error('Greška /my-offers:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
+    res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.',
+      ),
+    });
   }
 });
 
@@ -3090,11 +3175,23 @@ app.get('/shipments/:id/offers', authMiddleware, (req, res) => {
 
     const shipment = shipments.find((s) => Number(s.id) === Number(req.params.id));
     if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Teret nije pronađen.',
+          'Shipment not found.',
+        ),
+      });
     }
 
     if (Number(shipment.senderId) !== Number(req.user.id)) {
-      return res.status(403).json({ message: 'Nemate pristup ponudama za ovaj teret.' });
+      return res.status(403).json({
+        message: apiText(
+          req,
+          'Nemate pristup ponudama za ovaj teret.',
+          'You do not have access to the offers for this shipment.',
+        ),
+      });
     }
 
     const shipmentOffers = offers
@@ -3124,7 +3221,13 @@ app.get('/shipments/:id/offers', authMiddleware, (req, res) => {
     res.json(shipmentOffers);
   } catch (error) {
     console.error('Greška /shipments/:id/offers:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
+    res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.',
+      ),
+    });
   }
 });
 
@@ -3134,26 +3237,56 @@ app.post('/offers/:id/accept', authMiddleware, (req, res) => {
      try {
     const shipments = readJson(shipmentsFile);
 if (req.user.role !== 'sender') {
-  return res.status(403).json({ message: 'Samo naručitelj može prihvatiti ponudu.' });
+ return res.status(403).json({
+   message: apiText(
+     req,
+     'Samo naručitelj može prihvatiti ponudu.',
+     'Only the sender can accept an offer.',
+   ),
+ });
 }
 
 const offers = readJson(offersFile);
     const offer = offers.find((o) => Number(o.id) === Number(req.params.id));
     if (!offer) {
-      return res.status(404).json({ message: 'Ponuda nije pronađena.' });
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Ponuda nije pronađena.',
+          'Offer not found.',
+        ),
+      });
     }
 
     const shipment = shipments.find((s) => Number(s.id) === Number(offer.shipmentId));
     if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Teret nije pronađen.',
+          'Shipment not found.',
+        ),
+      });
     }
 
     if (Number(shipment.senderId) !== Number(req.user.id)) {
-      return res.status(403).json({ message: 'Nemate pravo prihvatiti ovu ponudu.' });
+      return res.status(403).json({
+        message: apiText(
+          req,
+          'Nemate pravo prihvatiti ovu ponudu.',
+          'You are not allowed to accept this offer.',
+        ),
+      });
     }
 
     if (shipment.status !== 'aktivan') {
-      return res.status(400).json({ message: 'Ovaj teret više nije aktivan.' });
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Ovaj teret više nije aktivan.',
+          'This shipment is no longer active.',
+        ),
+      });
     }
 
     offer.status = 'accepted';
@@ -3266,7 +3399,13 @@ app.post('/shipments/:id/pay-commission', authMiddleware, (req, res) => {
 app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
-      return res.status(403).json({ message: 'Samo naručitelj može potvrditi isporuku.' });
+     return res.status(403).json({
+       message: apiText(
+         req,
+         'Samo naručitelj može potvrditi isporuku.',
+         'Only the sender can confirm delivery.',
+       ),
+     });
     }
 
     const shipments = readJson(shipmentsFile);
@@ -3274,11 +3413,23 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
 
     const shipment = shipments.find((s) => Number(s.id) === Number(req.params.id));
     if (!shipment) {
-      return res.status(404).json({ message: 'Teret nije pronađen.' });
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Teret nije pronađen.',
+          'Shipment not found.',
+        ),
+      });
     }
 
     if (Number(shipment.senderId) !== Number(req.user.id)) {
-      return res.status(403).json({ message: 'Nemate pravo potvrditi ovu isporuku.' });
+      return res.status(403).json({
+        message: apiText(
+          req,
+          'Nemate pravo potvrditi ovu isporuku.',
+          'You are not allowed to confirm this delivery.',
+        ),
+      });
     }
 
     shipment.status = 'zavrseno';
@@ -3313,16 +3464,36 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
         offerId: acceptedOffer.id,
         createdBy: req.user.id,
       });
+      sendPushNotificationToUser(
+        acceptedOffer.carrierId,
+        deliveryNotificationTitle,
+        deliveryNotificationMessage,
+        {
+          type: 'delivery_confirmed',
+          shipmentId: shipment.id,
+          offerId: acceptedOffer.id,
+        }
+      );
     }
+res.json({
+  message: apiText(
+    req,
+    'Prijevoz je završen.',
+    'The transport has been completed.',
+  ),
+  shipment,
+});
+} catch (error) {
+  console.error('Greška /shipments/:id/confirm-delivery:', error);
 
-    res.json({
-      message: 'Prijevoz dogovoren.',
-      shipment,
-    });
-  } catch (error) {
-    console.error('Greška /shipments/:id/confirm-delivery:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+  res.status(500).json({
+    message: apiText(
+      req,
+      'Greška na serveru.',
+      'Server error.',
+    ),
+  });
+}
 });
 
 // ================= RATINGS =================
@@ -3339,13 +3510,21 @@ app.post('/ratings', authMiddleware, (req, res) => {
 
     if (!shipmentId || !rating) {
       return res.status(400).json({
-        message: 'shipmentId i rating su obavezni.',
+        message: apiText(
+          req,
+          'Podaci o prijevozu i ocjena su obavezni.',
+          'Shipment and rating are required.',
+        ),
       });
     }
 
     if (rating < 1 || rating > 5) {
       return res.status(400).json({
-        message: 'Ocjena mora biti između 1 i 5.',
+        message: apiText(
+          req,
+          'Ocjena mora biti između 1 i 5.',
+          'The rating must be between 1 and 5.',
+        ),
       });
     }
 
@@ -3353,7 +3532,11 @@ app.post('/ratings', authMiddleware, (req, res) => {
 
     if (!shipment) {
       return res.status(404).json({
-        message: 'Teret nije pronađen.',
+        message: apiText(
+          req,
+          'Teret nije pronađen.',
+          'Shipment not found.',
+        ),
       });
     }
 
@@ -3365,7 +3548,11 @@ app.post('/ratings', authMiddleware, (req, res) => {
 
     if (!acceptedOffer) {
       return res.status(400).json({
-        message: 'Nema prihvaćene ponude za ovaj prijevoz.',
+        message: apiText(
+          req,
+          'Nema prihvaćene ponude za ovaj prijevoz.',
+          'There is no accepted offer for this transport.',
+        ),
       });
     }
 
@@ -3377,7 +3564,11 @@ app.post('/ratings', authMiddleware, (req, res) => {
       ratedUserId = Number(shipment.senderId);
     } else {
       return res.status(403).json({
-        message: 'Nemate pravo ocijeniti ovaj prijevoz.',
+        message: apiText(
+          req,
+          'Nemate pravo ocijeniti ovaj prijevoz.',
+          'You are not allowed to rate this transport.',
+        ),
       });
     }
 
@@ -3390,7 +3581,11 @@ app.post('/ratings', authMiddleware, (req, res) => {
 
     if (existingRating) {
       return res.status(400).json({
-        message: 'Već ste ocijenili ovog korisnika za ovaj prijevoz.',
+        message: apiText(
+          req,
+          'Već ste ocijenili ovog korisnika za ovaj prijevoz.',
+          'You have already rated this user for this transport.',
+        ),
       });
     }
 
@@ -3408,14 +3603,26 @@ app.post('/ratings', authMiddleware, (req, res) => {
     writeJson(ratingsFile, ratings);
 
     res.status(201).json({
-      message: 'Ocjena je uspješno spremljena.',
+      message: apiText(
+        req,
+        'Ocjena je uspješno spremljena.',
+        'The rating has been saved successfully.',
+      ),
       rating: newRating,
     });
   } catch (error) {
     console.error('Greška POST /ratings:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
+
+    res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.',
+      ),
+    });
   }
 });
+
 app.get('/users/:id/ratings', authMiddleware, (req, res) => {
   try {
     const ratings = readJson(ratingsFile);
@@ -3443,7 +3650,11 @@ app.get('/users/:id/ratings', authMiddleware, (req, res) => {
     console.error('Greška GET /users/:id/ratings:', error);
 
     res.status(500).json({
-      message: 'Greška na serveru.',
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.',
+      ),
     });
   }
 });
@@ -3461,143 +3672,23 @@ app.get('/notifications', authMiddleware, (req, res) => {
     res.json(mine);
   } catch (error) {
     console.error('Greška /notifications:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
+
+    res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.',
+      ),
+    });
   }
 });
-
-app.post('/notifications/:id/read', authMiddleware, (req, res) => {
-  try {
-    const notifications = readJson(notificationsFile);
-
-    const notification = notifications.find(
-      (n) =>
-        Number(n.id) === Number(req.params.id) &&
-        Number(n.userId) === Number(req.user.id)
-    );
-
-    if (!notification) {
-      return res.status(404).json({ message: 'Obavijest nije pronađena.' });
-    }
-
-    notification.isRead = true;
-    writeJson(notificationsFile, notifications);
-
-    res.json({
-      message: 'Obavijest označena kao pročitana.',
-      notification,
-    });
-  } catch (error) {
-    console.error('Greška /notifications/:id/read:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
-});
-app.post('/notifications/read-all', authMiddleware, (req, res) => {
-  try {
-    const notifications = readJson(notificationsFile);
-
-    let changed = false;
-
-    notifications.forEach((notification) => {
-      if (Number(notification.userId) === Number(req.user.id)) {
-        notification.isRead = true;
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      writeJson(notificationsFile, notifications);
-    }
-
-    res.json({
-      message: 'Sve obavijesti su označene kao pročitane.',
-    });
-  } catch (error) {
-    console.error('Greška POST /notifications/read-all:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
-});
-
-app.delete('/notifications/read', authMiddleware, (req, res) => {
-  try {
-    const notifications = readJson(notificationsFile);
-
-    const filteredNotifications = notifications.filter((notification) => {
-      return !(
-        Number(notification.userId) === Number(req.user.id) &&
-        notification.isRead === true
-      );
-    });
-
-    writeJson(notificationsFile, filteredNotifications);
-
-    res.json({
-      message: 'Pročitane obavijesti su obrisane.',
-    });
-  } catch (error) {
-    console.error('Greška DELETE /notifications/read:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
-});
-
-app.delete('/notifications/:id', authMiddleware, (req, res) => {
-  try {
-    const notifications = readJson(notificationsFile);
-    const notificationId = Number(req.params.id);
-
-    const notification = notifications.find(
-      (n) => Number(n.id) === notificationId
-    );
-
-    if (!notification) {
-      return res.status(404).json({
-        message: 'Obavijest nije pronađena.',
-      });
-    }
-
-    if (Number(notification.userId) !== Number(req.user.id)) {
-      return res.status(403).json({
-        message: 'Nemate pravo obrisati ovu obavijest.',
-      });
-    }
-
-    const filteredNotifications = notifications.filter(
-      (n) => Number(n.id) !== notificationId
-    );
-
-    writeJson(notificationsFile, filteredNotifications);
-
-    res.json({
-      message: 'Obavijest je obrisana.',
-    });
-  } catch (error) {
-    console.error('Greška DELETE /notifications/:id:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
-});
-
-app.delete('/notifications', authMiddleware, (req, res) => {
-  try {
-    const notifications = readJson(notificationsFile);
-
-    const filteredNotifications = notifications.filter((notification) => {
-      return Number(notification.userId) !== Number(req.user.id);
-    });
-
-    writeJson(notificationsFile, filteredNotifications);
-
-    res.json({
-      message: 'Sve obavijesti su obrisane.',
-    });
-  } catch (error) {
-    console.error('Greška DELETE /notifications:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
-});
-// ================= START =================
-
 runCleanup();
-setInterval(runCleanup, CLEANUP_INTERVAL_MS);
+
+setInterval(
+  runCleanup,
+  CLEANUP_INTERVAL_MS
+);
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`TeReT backend radi na portu ${PORT}`);
+  console.log(`✅ TeReT backend radi na portu ${PORT}`);
 });
