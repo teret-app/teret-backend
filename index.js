@@ -248,84 +248,120 @@ app.use((req, res, next) => {
 app.post('/create-checkout-session', authMiddleware, async (req, res) => {
   try {
     const { shipmentId } = req.body;
-   if (!stripe) {
-     return res.status(500).json({
-       message: 'Stripe nije konfiguriran.',
-     });
-   }
 
-   if (!shipmentId) {
-     return res.status(400).json({
-       message: 'shipmentId je obavezan.',
-     });
-   }
-const offers = readJson(offersFile);
+    if (!stripe) {
+      return res.status(500).json({
+        message: apiText(
+          req,
+          'Stripe nije konfiguriran.',
+          'Stripe is not configured.'
+        ),
+      });
+    }
 
-const acceptedOffer = offers.find(
-  (o) =>
-    Number(o.shipmentId) === Number(shipmentId) &&
-    Number(o.carrierId) === Number(req.user.id) &&
-    (
-      o.status === 'accepted' ||
-      o.status === 'prihvaceno' ||
-      o.status === 'prihvaćeno'
-    )
-);
+    if (!shipmentId) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'shipmentId je obavezan.',
+          'shipmentId is required.'
+        ),
+      });
+    }
 
-if (!acceptedOffer) {
-  return res.status(404).json({
-    message: 'Prihvaćena ponuda nije pronađena.',
-  });
-}
-if (
-  acceptedOffer.commissionPaid === true ||
-  acceptedOffer.contactUnlocked === true
-) {
-  return res.status(400).json({
-    message: 'Provizija je već plaćena i kontakt je već otključan.',
-  });
-}
-const acceptedAmount = Number(acceptedOffer.amount);
+    const offers = readJson(offersFile);
 
-const calculatedCommission = acceptedAmount * 0.05;
+    const acceptedOffer = offers.find(
+      (o) =>
+        Number(o.shipmentId) === Number(shipmentId) &&
+        Number(o.carrierId) === Number(req.user.id) &&
+        (
+          o.status === 'accepted' ||
+          o.status === 'prihvaceno' ||
+          o.status === 'prihvaćeno'
+        )
+    );
 
-const commissionAmount = Math.round(
-  Math.max(calculatedCommission, 5) * 100
-);
+    if (!acceptedOffer) {
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Prihvaćena ponuda nije pronađena.',
+          'The accepted offer was not found.'
+        ),
+      });
+    }
 
-if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
-  return res.status(400).json({
-    message: 'Neispravan iznos provizije.',
-  });
-}
+    if (
+      acceptedOffer.commissionPaid === true ||
+      acceptedOffer.contactUnlocked === true
+    ) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Provizija je već plaćena i kontakt je već otključan.',
+          'The service fee has already been paid and the contact details are already unlocked.'
+        ),
+      });
+    }
+
+    const acceptedAmount = Number(acceptedOffer.amount);
+
+    const calculatedCommission = acceptedAmount * 0.05;
+
+    const commissionAmount = Math.round(
+      Math.max(calculatedCommission, 5) * 100
+    );
+
+    if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Neispravan iznos provizije.',
+          'Invalid service fee amount.'
+        ),
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-    tax_id_collection: {
-      enabled: true,
-      required: 'never',
-    },
 
-    billing_address_collection:'required',
+      tax_id_collection: {
+        enabled: true,
+        required: 'never',
+      },
+
+      billing_address_collection: 'required',
+
       line_items: [
         {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'TeReT provizija',
+              name: apiText(
+                req,
+                'TeReT provizija',
+                'TeReT service fee'
+              ),
             },
-           unit_amount: commissionAmount,
+            unit_amount: commissionAmount,
           },
           quantity: 1,
         },
       ],
-     success_url: `${APP_URL}/payment-success?shipmentId=${shipmentId}`,
-      cancel_url: `${APP_URL}/payment-cancel`,
-     metadata: {
-       carrierId: String(req.user.id),
-       shipmentId: String(shipmentId),
-       offerId: String(acceptedOffer.id),
-     },
+
+      success_url:
+        `${APP_URL}/payment-success?shipmentId=${shipmentId}`,
+
+      cancel_url:
+        `${APP_URL}/payment-cancel`,
+
+      metadata: {
+        carrierId: String(req.user.id),
+        shipmentId: String(shipmentId),
+        offerId: String(acceptedOffer.id),
+      },
     });
 
     res.json({
@@ -333,11 +369,17 @@ if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
     });
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
-      message: 'Greška pri kreiranju Stripe naplate.',
+      message: apiText(
+        req,
+        'Greška pri kreiranju Stripe naplate.',
+        'An error occurred while creating the Stripe payment.'
+      ),
     });
   }
 });
+
 // ================= PATHS =================
 
 const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -476,30 +518,50 @@ function createToken(user) {
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || '';
+
   const token = authHeader.startsWith('Bearer ')
     ? authHeader.substring(7)
     : null;
 
   if (!token) {
-    return res.status(401).json({ message: 'Nedostaje token.' });
+    return res.status(401).json({
+      message: apiText(
+        req,
+        'Nedostaje token.',
+        'Authentication token is missing.'
+      ),
+    });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const users = readJson(usersFile);
-    const user = users.find((u) => Number(u.id) === Number(decoded.id));
+
+    const user = users.find(
+      (u) => Number(u.id) === Number(decoded.id)
+    );
 
     if (!user) {
       return res.status(401).json({
-        message: 'Korisnik više ne postoji. Prijavite se ponovno.',
+        message: apiText(
+          req,
+          'Korisnik više ne postoji. Prijavite se ponovno.',
+          'The user account no longer exists. Please sign in again.'
+        ),
       });
     }
 
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Neispravan ili istekao token.' });
+    return res.status(401).json({
+      message: apiText(
+        req,
+        'Neispravan ili istekao token.',
+        'The authentication token is invalid or has expired.'
+      ),
+    });
   }
 }
 function getUserById(userId) {
@@ -1137,17 +1199,36 @@ app.post('/register', async (req, res) => {
     }
     if (!fullName || !email || !phone || !password || !role) {
       return res.status(400).json({
-        message: 'fullName, email, phone, password i role su obavezni.',
+        message: apiText(
+          req,
+          'fullName, email, phone, password i role su obavezni.',
+          'fullName, email, phone, password and role are required.'
+        ),
       });
     }
 
     if (!['sender', 'carrier'].includes(role)) {
-      return res.status(400).json({ message: 'Neispravna uloga korisnika.' });
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Neispravna uloga korisnika.',
+          'Invalid user role.'
+        ),
+      });
     }
 
-    const existingUser = users.find((u) => normalizeString(u.email).toLowerCase() === email);
+    const existingUser = users.find(
+      (u) => normalizeString(u.email).toLowerCase() === email
+    );
+
     if (existingUser) {
-      return res.status(400).json({ message: 'Korisnik s tim emailom već postoji.' });
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Korisnik s tim emailom već postoji.',
+          'A user with this email already exists.'
+        ),
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -1178,27 +1259,36 @@ app.post('/register', async (req, res) => {
       writeJson(usersFile, users);
 
       const verificationUrl = `${APP_URL}/verify-email/${verificationToken}`;
+await sendVerificationEmail(email, verificationUrl);
 
-      await sendVerificationEmail(email, verificationUrl);
+res.status(201).json({
+  message: apiText(
+    req,
+    'Registracija uspješna. Poslali smo vam email za potvrdu računa.',
+    'Registration successful. We have sent you a verification email.'
+  ),
 
-      res.status(201).json({
-        message:
-          'Registracija uspješna. Poslali smo vam email za potvrdu računa.',
+  user: {
+    id: newUser.id,
+    fullName: newUser.fullName,
+    companyName: newUser.companyName,
+    email: newUser.email,
+    phone: newUser.phone,
+    role: newUser.role,
+    emailVerified: newUser.emailVerified,
+  },
+});
+   } catch (error) {
+     console.error('Greška /register:', error);
 
-        user: {
-          id: newUser.id,
-          fullName: newUser.fullName,
-          companyName: newUser.companyName,
-          email: newUser.email,
-          phone: newUser.phone,
-          role: newUser.role,
-          emailVerified: newUser.emailVerified,
-        },
-      });
-    } catch (error) {
-      console.error('Greška /register:', error);
-      res.status(500).json({ message: 'Greška na serveru.' });
-    }
+     res.status(500).json({
+       message: apiText(
+         req,
+         'Greška na serveru.',
+         'Server error.'
+       ),
+     });
+   }
   });
 
 app.get('/verify-email/:token', (req, res) => {
@@ -1210,9 +1300,14 @@ app.get('/verify-email/:token', (req, res) => {
 
     if (!user) {
       return res.status(400).json({
-        message: 'Neispravan ili istekao link za potvrdu email adrese.',
+        message: apiText(
+          req,
+          'Neispravan ili istekao link za potvrdu email adrese.',
+          'The email verification link is invalid or has expired.'
+        ),
       });
     }
+
 
     user.emailVerified = true;
     user.verificationToken = null;
@@ -1220,28 +1315,71 @@ app.get('/verify-email/:token', (req, res) => {
 
     writeJson(usersFile, users);
 
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="hr">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>TeReT - račun potvrđen</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; background:#f5f7fb; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0;">
-        <div style="background:white; padding:28px; border-radius:16px; max-width:420px; text-align:center; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-          <h2 style="color:#2e7d32;">Račun je potvrđen</h2>
-          <p>Vaša email adresa je uspješno potvrđena.</p>
-          <p>Sada se možete prijaviti u aplikaciju TeReT.</p>
-        </div>
-      </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error('Greška /verify-email:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+   const language =
+     normalizeString(req.query.lang).toLowerCase() === 'en'
+       ? 'en'
+       : 'hr';
+
+   const pageText = (hr, en) =>
+     language === 'en' ? en : hr;
+
+   res.send(`
+     <!DOCTYPE html>
+     <html lang="${language}">
+     <head>
+       <meta charset="UTF-8" />
+       <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1.0"
+       />
+
+       <title>${pageText(
+         'TeReT - račun potvrđen',
+         'TeReT - Account verified'
+       )}</title>
+     </head>
+
+     <body style="font-family: Arial, sans-serif; background:#f5f7fb; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0;">
+       <div style="background:white; padding:28px; border-radius:16px; max-width:420px; text-align:center; box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+
+         <h2 style="color:#2e7d32;">
+           ${pageText(
+             'Račun je potvrđen',
+             'Account verified'
+           )}
+         </h2>
+
+         <p>
+           ${pageText(
+             'Vaša email adresa je uspješno potvrđena.',
+             'Your email address has been successfully verified.'
+           )}
+         </p>
+
+         <p>
+           ${pageText(
+             'Sada se možete prijaviti u aplikaciju TeReT.',
+             'You can now sign in to the TeReT app.'
+           )}
+         </p>
+       </div>
+     </body>
+     </html>
+   `);
+
+} catch (error) {
+  console.error('Greška /verify-email:', error);
+
+  res.status(500).json({
+    message: apiText(
+      req,
+      'Greška na serveru.',
+      'Server error.'
+    ),
+  });
+}
 });
+
 app.post('/resend-verification-email', async (req, res) => {
   try {
     const users = readJson(usersFile);
@@ -1593,7 +1731,11 @@ const pageText = (hr, en) =>
 
       <form method="POST" action="/reset-password">
         <input type="hidden" name="token" value="${token}">
-
+<input
+  type="hidden"
+  name="language"
+  value="${language}"
+>
         <label>${pageText(
           'Nova lozinka',
           'New password'
@@ -1677,27 +1819,44 @@ const pageText = (hr, en) =>
 
 app.post('/reset-password', async (req, res) => {
   try {
-    const token = normalizeString(req.body.token);
-    const password = String(req.body.password || '');
-    const confirmPassword = String(req.body.confirmPassword || '');
+ const token = normalizeString(req.body.token);
+ const password = String(req.body.password || '');
+ const confirmPassword = String(req.body.confirmPassword || '');
 
-    if (!token) {
-      return res.status(400).send(
-        '<h3>Neispravna poveznica za promjenu lozinke.</h3>'
-      );
-    }
+ const language =
+   normalizeString(req.body.language).toLowerCase() === 'en'
+     ? 'en'
+     : 'hr';
 
-    if (password.length < 6) {
-      return res.status(400).send(
-        '<h3>Lozinka mora imati najmanje 6 znakova.</h3>'
-      );
-    }
+ const pageText = (hr, en) =>
+   language === 'en' ? en : hr;
 
-    if (password !== confirmPassword) {
-      return res.status(400).send(
-        '<h3>Lozinke se ne podudaraju.</h3>'
-      );
-    }
+ if (!token) {
+   return res.status(400).send(
+     `<h3>${pageText(
+       'Neispravna poveznica za promjenu lozinke.',
+       'Invalid password reset link.'
+     )}</h3>`
+   );
+ }
+
+ if (password.length < 6) {
+   return res.status(400).send(
+     `<h3>${pageText(
+       'Lozinka mora imati najmanje 6 znakova.',
+       'The password must contain at least 6 characters.'
+     )}</h3>`
+   );
+ }
+
+ if (password !== confirmPassword) {
+   return res.status(400).send(
+     `<h3>${pageText(
+       'Lozinke se ne podudaraju.',
+       'The passwords do not match.'
+     )}</h3>`
+   );
+ }
 
     const users = readJson(usersFile);
 
