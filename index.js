@@ -1994,12 +1994,15 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
 });
 
 // ================= SHIPMENTS =================
-
 app.put('/shipments/:id', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
       return res.status(403).json({
-        message: 'Samo naručitelj može uređivati objavu.',
+        message: apiText(
+          req,
+          'Samo naručitelj može uređivati objavu.',
+          'Only the sender can edit a shipment listing.'
+        ),
       });
     }
 
@@ -2013,12 +2016,13 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
 
     if (!carrier) {
       return res.status(404).json({
-        message: 'Prijevoznik nije pronađen.',
+        message: apiText(
+          req,
+          'Prijevoznik nije pronađen.',
+          'Carrier not found.'
+        ),
       });
     }
-
-
-
 
     const shipment = shipments.find(
       (s) => Number(s.id) === Number(req.params.id)
@@ -2026,213 +2030,92 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
 
     if (!shipment) {
       return res.status(404).json({
-        message: 'Teret nije pronađen.',
+        message: apiText(
+          req,
+          'Teret nije pronađen.',
+          'Shipment not found.'
+        ),
       });
     }
 
     if (Number(shipment.senderId) !== Number(req.user.id)) {
       return res.status(403).json({
-        message: 'Nemate pravo uređivati ovaj teret.',
+        message: apiText(
+          req,
+          'Nemate pravo uređivati ovaj teret.',
+          'You are not allowed to edit this shipment.'
+        ),
       });
     }
 
     if (shipment.status !== 'aktivan') {
       return res.status(400).json({
-        message: 'Objavu je moguće uređivati samo dok je aktivna.',
+        message: apiText(
+          req,
+          'Objavu je moguće uređivati samo dok je aktivna.',
+          'The listing can only be edited while it is active.'
+        ),
       });
     }
 
     const acceptedOffer = offers.find(
       (o) =>
         Number(o.shipmentId) === Number(shipment.id) &&
-        (o.status === 'accepted' ||
+        (
+          o.status === 'accepted' ||
           o.status === 'prihvaceno' ||
-          o.status === 'prihvaćeno')
+          o.status === 'prihvaćeno'
+        )
     );
 
     if (acceptedOffer) {
       return res.status(400).json({
-        message: 'Objavu nije moguće uređivati nakon prihvaćanja ponude.',
+        message: apiText(
+          req,
+          'Objavu nije moguće uređivati nakon prihvaćanja ponude.',
+          'The listing cannot be edited after an offer has been accepted.'
+        ),
       });
     }
 
-    shipment.naziv_tereta = normalizeString(req.body.naziv_tereta || shipment.naziv_tereta);
-    shipment.opis_tereta = normalizeString(req.body.opis_tereta || shipment.opis_tereta);
-    shipment.mjesto_utovara = normalizeString(req.body.mjesto_utovara || shipment.mjesto_utovara);
-    shipment.mjesto_istovara = normalizeString(req.body.mjesto_istovara || shipment.mjesto_istovara);
+    shipment.naziv_tereta = normalizeString(
+      req.body.naziv_tereta || shipment.naziv_tereta
+    );
+
+    shipment.opis_tereta = normalizeString(
+      req.body.opis_tereta || shipment.opis_tereta
+    );
+
+    shipment.mjesto_utovara = normalizeString(
+      req.body.mjesto_utovara || shipment.mjesto_utovara
+    );
+
+    shipment.mjesto_istovara = normalizeString(
+      req.body.mjesto_istovara || shipment.mjesto_istovara
+    );
 
     shipment.updatedAt = nowIso();
 
     writeJson(shipmentsFile, shipments);
 
     res.json({
-      message: 'Objava je uspješno ažurirana.',
+      message: apiText(
+        req,
+        'Objava je uspješno ažurirana.',
+        'The listing has been updated successfully.'
+      ),
       shipment,
     });
   } catch (error) {
     console.error('Greška PUT /shipments/:id:', error);
+
     res.status(500).json({
-      message: 'Greška na serveru.',
-    });
-  }
-});
-
-app.post('/shipments', authMiddleware, (req, res) => {
-  try {
-    if (req.user.role !== 'sender') {
-      return res.status(403).json({ message: 'Samo naručitelj može objaviti teret.' });
-    }
-
-    const shipments = readJson(shipmentsFile);
-    const users = readJson(usersFile);
-
-    const sender = users.find((u) => Number(u.id) === Number(req.user.id));
-    if (!sender) {
-      return res.status(404).json({ message: 'Korisnik nije pronađen.' });
-    }
-
-    const rokUtovara = normalizeString(req.body.rok_utovara || req.body.rokUtovara);
-
-    const allowedRokUtovara = ['24 sata', '48 sati', '72 sata+', 'Po dogovoru'];
-    const trajanjeLicitacije =
-      normalizeString(req.body.trajanje_licitacije) || '24 sata';
-
-    const rokPreuzimanja =
-      normalizeString(req.body.rok_preuzimanja) || '24 sata';
-
-    let satiLicitacije = 24;
-if (
-  trajanjeLicitacije === '1 sat' ||
-  trajanjeLicitacije === '1h'
-) {
-  satiLicitacije = 1;
-}
-
-if (
-  trajanjeLicitacije === '2 sata' ||
-  trajanjeLicitacije === '2h'
-) {
-  satiLicitacije = 2;
-}
-    if (trajanjeLicitacije === '6 sati') {
-      satiLicitacije = 6;
-    }
-
-    if (trajanjeLicitacije === '12 sati') {
-      satiLicitacije = 12;
-    }
-
-    if (trajanjeLicitacije === '24 sata') {
-      satiLicitacije = 24;
-    }
-
-    if (trajanjeLicitacije === '12h') {
-      satiLicitacije = 12;
-    }
-
-    const licitacijaZavrsavaAt = new Date(
-      Date.now() + satiLicitacije * 60 * 60 * 1000
-    ).toISOString();
-
-    if (rokUtovara && !allowedRokUtovara.includes(rokUtovara)) {
-      return res.status(400).json({
-        message: 'Neispravan rok utovara.',
-        allowedValues: allowedRokUtovara,
-      });
-    }
-const newShipmentId = getNextId(shipments);
-
-const rawShipmentImages =
-  req.body.slike ||
-  req.body.images ||
-  req.body.imageUrls ||
-  req.body.photos ||
-  [];
-
-const savedImages = saveShipmentImages(
-  rawShipmentImages,
-  newShipmentId
-);
-const textForContactCheck = `${
-  req.body.naziv_tereta || req.body.title || ''
-} ${
-  req.body.opis_tereta || req.body.description || ''
-}`;
-
-const forbiddenContactPattern =
-  /(\+?\d[\d\s\-\/().]{6,}\d)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(whatsapp|viber|telegram|signal|messenger|facebook|instagram|gmail|mail|email|e-mail|nazovi|zovi|javi se|kontaktiraj|kontakt|mobitel|telefon|broj)/i;
-
-
-  if (forbiddenContactPattern.test(textForContactCheck)) {
-    return res.status(400).json({
       message: apiText(
         req,
-        'Opis tereta ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
-        'The shipment description must not contain contact details, phone numbers, email addresses, or invitations to arrange transport outside the app.',
+        'Greška na serveru.',
+        'Server error.'
       ),
     });
-  }
-    const newShipment = {
-      id: newShipmentId,
-      senderId: Number(req.user.id),
-      status: 'aktivan',
-      naziv_tereta: req.body.naziv_tereta || req.body.title || '',
-      opis_tereta: req.body.opis_tereta || req.body.description || '',
-     drzava_utovara: normalizeString(req.body.drzava_utovara) || 'Hrvatska',
-     mjesto_utovara: req.body.mjesto_utovara || '',
-     adresa_utovara: req.body.adresa_utovara || '',
-
-     drzava_istovara: normalizeString(req.body.drzava_istovara) || 'Hrvatska',
-     mjesto_istovara: req.body.mjesto_istovara || '',
-     adresa_istovara: req.body.adresa_istovara || '',
-      datum_utovara: req.body.datum_utovara || '',
-      rok_utovara: rokUtovara || '',
-      rok_licitacije: req.body.rok_licitacije || '',
-      trajanje_licitacije: trajanjeLicitacije,
-      rok_preuzimanja: rokPreuzimanja,
-      licitacija_zavrsava_at: licitacijaZavrsavaAt,
-      tezina_cca_kg:
-        req.body.tezina_cca_kg ||
-        req.body.tezina_kg ||
-        '',
-      duzina_cm: req.body.duzina_cm || '',
-      sirina_cm: req.body.sirina_cm || '',
-      visina_cm: req.body.visina_cm || '',
-      broj_paleta: req.body.broj_paleta || '',
-      nacin_utovara: req.body.nacin_utovara || '',
-      tip_lokacije_utovara: req.body.tip_lokacije_utovara || '',
-      tip_lokacije_istovara: req.body.tip_lokacije_istovara || '',
-      kat_utovara: req.body.kat_utovara || '',
-      kat_istovara: req.body.kat_istovara || '',
-      lift_na_utovaru: req.body.lift_na_utovaru ?? false,
-      lift_na_istovaru: req.body.lift_na_istovaru ?? false,
-      prilaz_za_tegljac: req.body.prilaz_za_tegljac ?? false,
-      treba_pomoc_vozaca: req.body.treba_pomoc_vozaca ?? false,
-      slike: savedImages,
-      phone: sender.phone || '',
-      region: sender.region || 'Evropa',
-      viewsCount: 0,
-      viewedBy: [],
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    };
-
-    shipments.unshift(newShipment);
-    writeJson(shipmentsFile, shipments);
-
-    addNewShipmentNotifications({
-      users,
-      shipment: newShipment,
-      createdBy: req.user.id,
-    });
-
-    res.status(201).json({
-      message: 'Teret je uspješno objavljen.',
-      shipment: newShipment,
-    });
-  } catch (error) {
-    console.error('Greška /shipments POST:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
   }
 });
 
@@ -2353,7 +2236,18 @@ const senderRating = getUserRatingSummary(
         ...sanitizeShipmentForViewer(shipment, req.user, offers),
         slike: [],
         senderId: senderUser ? Number(senderUser.id) : Number(shipment.senderId),
-        senderName: senderUser ? senderUser.fullName || 'Naručitelj' : 'Naručitelj',
+        senderName: senderUser
+          ? senderUser.fullName ||
+            apiText(
+              req,
+              'Naručitelj',
+              'Sender'
+            )
+          : apiText(
+              req,
+              'Naručitelj',
+              'Sender'
+            ),
         senderRatingAverage: senderRating.averageRating,
         senderRatingsCount: senderRating.ratingsCount,
         offersCount: shipmentOffers.length,
@@ -2372,12 +2266,20 @@ const senderRating = getUserRatingSummary(
             ? toNumber(myOffer.amount, 0) > toNumber(lowestOffer, 0)
             : false,
 
-        myOfferBadge:
-          myOffer && lowestOffer !== null
-            ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
-              ? 'Najniža'
-              : 'Nadmašena'
-            : null,
+       myOfferBadge:
+         myOffer && lowestOffer !== null
+           ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
+             ? apiText(
+                 req,
+                 'Najniža',
+                 'Lowest'
+               )
+             : apiText(
+                 req,
+                 'Nadmašena',
+                 'Outbid'
+               )
+           : null,
         ratedUserId,
         ratedUserName: ratedUser ? ratedUser.fullName || '' : '',
         averageRating,
@@ -2386,17 +2288,28 @@ const senderRating = getUserRatingSummary(
     });
 
     res.json(result);
-  } catch (error) {
-    console.error('Greška /shipments GET:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+ } catch (error) {
+   console.error('Greška /shipments GET:', error);
+
+   res.status(500).json({
+     message: apiText(
+       req,
+       'Greška na serveru.',
+       'Server error.'
+     ),
+   });
+ }
 });
 
 app.get('/my-shipments', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
       return res.status(403).json({
-        message: 'Samo naručitelj može vidjeti svoje objave.',
+        message: apiText(
+          req,
+          'Samo naručitelj može vidjeti svoje objave.',
+          'Only the sender can view their shipment listings.'
+        ),
       });
     }
 
@@ -2449,16 +2362,27 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
       });
 
     res.json(myShipments);
-  } catch (error) {
-    console.error('Greška /my-shipments:', error);
-    res.status(500).json({ message: 'Greška na serveru.' });
-  }
+} catch (error) {
+  console.error('Greška /my-shipments:', error);
+
+  res.status(500).json({
+    message: apiText(
+      req,
+      'Greška na serveru.',
+      'Server error.'
+    ),
+  });
+}
 });
 app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
       return res.status(403).json({
-        message: 'Samo naručitelj može ukloniti objavu iz povijesti.',
+        message: apiText(
+          req,
+          'Samo naručitelj može ukloniti objavu iz povijesti.',
+          'Only the sender can remove a listing from history.'
+        ),
       });
     }
 
@@ -2469,15 +2393,23 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
     );
 
     if (!shipment) {
-      return res.status(404).json({
-        message: 'Teret nije pronađen.',
-      });
+    return res.status(404).json({
+      message: apiText(
+        req,
+        'Teret nije pronađen.',
+        'Shipment not found.'
+      ),
+    });
     }
 
     if (Number(shipment.senderId) !== Number(req.user.id)) {
-      return res.status(403).json({
-        message: 'Nemate pravo ukloniti ovu objavu.',
-      });
+     return res.status(403).json({
+       message: apiText(
+         req,
+         'Nemate pravo ukloniti ovu objavu.',
+         'You are not allowed to remove this listing.'
+       ),
+     });
     }
 
     const status = normalizeString(shipment.status).toLowerCase();
@@ -2500,9 +2432,13 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
        auctionEnded;
 
     if (!canHide) {
-      return res.status(400).json({
-        message: 'Samo završene, istekle ili povučene objave mogu se ukloniti iz povijesti.',
-      });
+     return res.status(400).json({
+       message: apiText(
+         req,
+         'Samo završene, istekle ili povučene objave mogu se ukloniti iz povijesti.',
+         'Only completed, expired or withdrawn listings can be removed from history.'
+       ),
+     });
     }
 
     shipment.hiddenBySender = true;
