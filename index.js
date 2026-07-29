@@ -2113,6 +2113,294 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
 });
 
 // ================= SHIPMENTS =================
+app.post('/shipments', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'sender') {
+      return res.status(403).json({
+        message: apiText(
+          req,
+          'Samo naručitelj može objaviti teret.',
+          'Only the sender can publish a shipment.'
+        ),
+      });
+    }
+
+    const shipments = readJson(shipmentsFile);
+    const users = readJson(usersFile);
+
+    const sender = users.find(
+      (user) => Number(user.id) === Number(req.user.id)
+    );
+
+    if (!sender) {
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Korisnik nije pronađen.',
+          'User not found.'
+        ),
+      });
+    }
+
+    const nazivTereta = normalizeString(
+      req.body.naziv_tereta || req.body.title
+    );
+
+    const opisTereta = normalizeString(
+      req.body.opis_tereta || req.body.description
+    );
+
+    const mjestoUtovara = normalizeString(
+      req.body.mjesto_utovara
+    );
+
+    const mjestoIstovara = normalizeString(
+      req.body.mjesto_istovara
+    );
+
+    const trajanjeLicitacije =
+      normalizeString(req.body.trajanje_licitacije) ||
+      '24 sata';
+
+    const rokPreuzimanja =
+      normalizeString(req.body.rok_preuzimanja) ||
+      '24 sata';
+
+    if (
+      !nazivTereta ||
+      !opisTereta ||
+      !mjestoUtovara ||
+      !mjestoIstovara
+    ) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Naziv, opis, mjesto utovara i mjesto istovara su obavezni.',
+          'The shipment name, description, loading place and unloading place are required.'
+        ),
+      });
+    }
+
+    let satiLicitacije = 24;
+
+    const normalizedDuration =
+      trajanjeLicitacije.toLowerCase();
+
+    if (
+      normalizedDuration === '1 sat' ||
+      normalizedDuration === '1 hour' ||
+      normalizedDuration === '1h'
+    ) {
+      satiLicitacije = 1;
+    } else if (
+      normalizedDuration === '2 sata' ||
+      normalizedDuration === '2 hours' ||
+      normalizedDuration === '2h'
+    ) {
+      satiLicitacije = 2;
+    } else if (
+      normalizedDuration === '6 sati' ||
+      normalizedDuration === '6 hours' ||
+      normalizedDuration === '6h'
+    ) {
+      satiLicitacije = 6;
+    } else if (
+      normalizedDuration === '12 sati' ||
+      normalizedDuration === '12 hours' ||
+      normalizedDuration === '12h'
+    ) {
+      satiLicitacije = 12;
+    } else if (
+      normalizedDuration === '24 sata' ||
+      normalizedDuration === '24 hours' ||
+      normalizedDuration === '24h'
+    ) {
+      satiLicitacije = 24;
+    }
+
+    const licitacijaZavrsavaAt = new Date(
+      Date.now() + satiLicitacije * 60 * 60 * 1000
+    ).toISOString();
+
+    const shipmentId = getNextId(shipments);
+
+    let savedImages = [];
+
+    try {
+      savedImages = saveShipmentImages(
+        Array.isArray(req.body.slike)
+          ? req.body.slike
+          : [],
+        shipmentId
+      );
+    } catch (imageError) {
+      console.error(
+        'Greška spremanja slika tereta:',
+        imageError
+      );
+
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Slike tereta nije moguće spremiti.',
+          'The shipment images could not be saved.'
+        ),
+      });
+    }
+
+    const createdAt = nowIso();
+
+    const newShipment = {
+      id: shipmentId,
+      senderId: Number(req.user.id),
+      status: 'aktivan',
+
+      region: sender.region || 'Evropa',
+
+      naziv_tereta: nazivTereta,
+      opis_tereta: opisTereta,
+
+      drzava_utovara: normalizeString(
+        req.body.drzava_utovara
+      ),
+
+      mjesto_utovara: mjestoUtovara,
+
+      adresa_utovara: normalizeString(
+        req.body.adresa_utovara
+      ),
+
+      drzava_istovara: normalizeString(
+        req.body.drzava_istovara
+      ),
+
+      mjesto_istovara: mjestoIstovara,
+
+      adresa_istovara: normalizeString(
+        req.body.adresa_istovara
+      ),
+
+      datum_utovara: normalizeString(
+        req.body.datum_utovara
+      ),
+
+      rok_utovara: normalizeString(
+        req.body.rok_utovara || req.body.rokUtovara
+      ),
+
+      rok_licitacije: normalizeString(
+        req.body.rok_licitacije
+      ),
+
+      trajanje_licitacije: trajanjeLicitacije,
+      rok_preuzimanja: rokPreuzimanja,
+      licitacija_zavrsava_at: licitacijaZavrsavaAt,
+
+      tezina_cca_kg: normalizeString(
+        req.body.tezina_cca_kg || req.body.tezina_kg
+      ),
+
+      tezina_kg: normalizeString(
+        req.body.tezina_cca_kg || req.body.tezina_kg
+      ),
+
+      broj_paleta: normalizeString(
+        req.body.broj_paleta
+      ),
+
+      duzina_cm: normalizeString(
+        req.body.duzina_cm
+      ),
+
+      sirina_cm: normalizeString(
+        req.body.sirina_cm
+      ),
+
+      visina_cm: normalizeString(
+        req.body.visina_cm
+      ),
+
+      nacin_utovara: normalizeString(
+        req.body.nacin_utovara
+      ),
+
+      tip_lokacije_utovara: normalizeString(
+        req.body.tip_lokacije_utovara
+      ),
+
+      tip_lokacije_istovara: normalizeString(
+        req.body.tip_lokacije_istovara
+      ),
+
+      kat_utovara: normalizeString(
+        req.body.kat_utovara
+      ),
+
+      kat_istovara: normalizeString(
+        req.body.kat_istovara
+      ),
+
+      lift_na_utovaru:
+        req.body.lift_na_utovaru === true,
+
+      lift_na_istovaru:
+        req.body.lift_na_istovaru === true,
+
+      prilaz_za_tegljac:
+        req.body.prilaz_za_tegljac === true,
+
+      treba_pomoc_vozaca:
+        req.body.treba_pomoc_vozaca === true,
+
+      broj_telefona: normalizeString(
+        req.body.broj_telefona || sender.phone
+      ),
+
+      phone: normalizeString(
+        req.body.broj_telefona || sender.phone
+      ),
+
+      slike: savedImages,
+
+      viewsCount: 0,
+      viewedBy: [],
+
+      contactUnlocked: false,
+      commissionPaid: false,
+
+      createdAt,
+      updatedAt: createdAt,
+    };
+
+    shipments.unshift(newShipment);
+    writeJson(shipmentsFile, shipments);
+
+    addNewShipmentNotifications({
+      users,
+      shipment: newShipment,
+      createdBy: req.user.id,
+    });
+
+    return res.status(201).json({
+      message: apiText(
+        req,
+        'Teret je uspješno objavljen.',
+        'The shipment was published successfully.'
+      ),
+      shipment: newShipment,
+    });
+  } catch (error) {
+    console.error('Greška /shipments POST:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
+  }
+});
 app.put('/shipments/:id', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
