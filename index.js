@@ -908,7 +908,7 @@ for (const carrier of carriers) {
        shipmentId: shipment.id,
      },
    );
- });
+ }
 
 
 
