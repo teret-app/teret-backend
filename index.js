@@ -366,7 +366,12 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
         ),
       });
     }
-
+const language =
+  normalizeString(req.headers['accept-language'])
+    .toLowerCase()
+    .startsWith('en')
+      ? 'en'
+      : 'hr';
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -395,8 +400,8 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
         },
       ],
 
-      success_url:
-        `${APP_URL}/payment-success?shipmentId=${shipmentId}`,
+     success_url:
+       `${APP_URL}/payment-success?shipmentId=${shipmentId}&lang=${language}`,
 
       cancel_url:
         `${APP_URL}/payment-cancel`,
@@ -1036,10 +1041,12 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
         offerId: offer.id,
         shipmentId: offer.shipmentId,
         carrierId: isSenderOwner || isMyOffer ? offer.carrierId : null,
-        carrierName:
-          isSenderOwner || isMyOffer
-            ? carrier?.fullName || ''
-            : 'Drugi prijevoznik',
+       carrierName:
+         isSenderOwner || isMyOffer
+           ? carrier?.fullName || ''
+           : viewer.language === 'en'
+               ? 'Other carrier'
+               : 'Drugi prijevoznik',
         carrierCompany:
           isSenderOwner || isMyOffer
             ? carrier?.companyName || ''
@@ -1326,15 +1333,19 @@ app.post('/register', async (req, res) => {
       users.push(newUser);
       writeJson(usersFile, users);
 
-      const verificationUrl = `${APP_URL}/verify-email/${verificationToken}`;
+      const language =
+        normalizeString(req.headers['accept-language'])
+          .toLowerCase()
+          .startsWith('en')
+            ? 'en'
+            : 'hr';
+
+      const verificationUrl =
+        `${APP_URL}/verify-email/${verificationToken}?lang=${language}`;
 await sendVerificationEmail(
   email,
   verificationUrl,
-  normalizeString(req.headers['accept-language'])
-    .toLowerCase()
-    .startsWith('en')
-      ? 'en'
-      : 'hr'
+  language,
 );
 
 res.status(201).json({
@@ -1503,18 +1514,21 @@ app.post('/resend-verification-email', async (req, res) => {
 
     writeJson(usersFile, users);
 
-    const verificationUrl =
-      `${APP_URL}/verify-email/${verificationToken}`;
+   const language =
+     normalizeString(req.headers['accept-language'])
+       .toLowerCase()
+       .startsWith('en')
+         ? 'en'
+         : 'hr';
 
-    await sendVerificationEmail(
-      email,
-      verificationUrl,
-      normalizeString(req.headers['accept-language'])
-        .toLowerCase()
-        .startsWith('en')
-          ? 'en'
-          : 'hr'
-    );
+   const verificationUrl =
+     `${APP_URL}/verify-email/${verificationToken}?lang=${language}`;
+
+   await sendVerificationEmail(
+     email,
+     verificationUrl,
+     language,
+   );
 
     return res.json({
       message: apiText(
@@ -2831,12 +2845,20 @@ const senderRating = senderUser
 
     if (isSenderOwner && acceptedCarrierId) {
       ratingTargetUserId = acceptedCarrierId;
-      ratingTargetLabel = 'prijevoznika';
+      ratingTargetLabel = apiText(
+        req,
+        'prijevoznika',
+        'carrier',
+      );
     }
 
     if (isAcceptedCarrier) {
       ratingTargetUserId = Number(shipment.senderId);
-      ratingTargetLabel = 'naručitelja';
+      ratingTargetLabel = apiText(
+        req,
+        'naručitelja',
+        'sender',
+      );
     }
 
     const hasRated =
@@ -4007,6 +4029,168 @@ app.get('/notifications', authMiddleware, (req, res) => {
         req,
         'Greška na serveru.',
         'Server error.',
+      ),
+    });
+  }
+});
+app.post('/notifications/:id/read', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+
+    const notification = notifications.find(
+      (n) =>
+        Number(n.id) === Number(req.params.id) &&
+        Number(n.userId) === Number(req.user.id)
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Obavijest nije pronađena.',
+          'Notification not found.'
+        ),
+      });
+    }
+
+    notification.isRead = true;
+    notification.readAt = nowIso();
+
+    writeJson(notificationsFile, notifications);
+
+    return res.json({
+      message: apiText(
+        req,
+        'Obavijest je označena kao pročitana.',
+        'The notification has been marked as read.'
+      ),
+      notification,
+    });
+  } catch (error) {
+    console.error('Greška POST /notifications/:id/read:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
+  }
+});
+
+app.delete('/notifications/read', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+
+    const remainingNotifications = notifications.filter(
+      (n) =>
+        Number(n.userId) !== Number(req.user.id) ||
+        n.isRead !== true
+    );
+
+    const deletedCount =
+      notifications.length - remainingNotifications.length;
+
+    writeJson(notificationsFile, remainingNotifications);
+
+    return res.json({
+      message: apiText(
+        req,
+        'Pročitane obavijesti su obrisane.',
+        'Read notifications have been deleted.'
+      ),
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('Greška DELETE /notifications/read:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
+  }
+});
+
+app.delete('/notifications/:id', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+
+    const notificationIndex = notifications.findIndex(
+      (n) =>
+        Number(n.id) === Number(req.params.id) &&
+        Number(n.userId) === Number(req.user.id)
+    );
+
+    if (notificationIndex === -1) {
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Obavijest nije pronađena.',
+          'Notification not found.'
+        ),
+      });
+    }
+
+    const deletedNotification = notifications[notificationIndex];
+
+    notifications.splice(notificationIndex, 1);
+
+    writeJson(notificationsFile, notifications);
+
+    return res.json({
+      message: apiText(
+        req,
+        'Obavijest je obrisana.',
+        'The notification has been deleted.'
+      ),
+      notification: deletedNotification,
+    });
+  } catch (error) {
+    console.error('Greška DELETE /notifications/:id:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
+  }
+});
+
+app.delete('/notifications', authMiddleware, (req, res) => {
+  try {
+    const notifications = readJson(notificationsFile);
+
+    const remainingNotifications = notifications.filter(
+      (n) => Number(n.userId) !== Number(req.user.id)
+    );
+
+    const deletedCount =
+      notifications.length - remainingNotifications.length;
+
+    writeJson(notificationsFile, remainingNotifications);
+
+    return res.json({
+      message: apiText(
+        req,
+        'Sve obavijesti su obrisane.',
+        'All notifications have been deleted.'
+      ),
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('Greška DELETE /notifications:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
       ),
     });
   }
