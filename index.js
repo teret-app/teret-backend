@@ -853,7 +853,11 @@ const notificationMessage = t(
   });
 }
 
-function addNewShipmentNotifications({ users, shipment, createdBy }) {
+async function addNewShipmentNotifications({
+  users,
+  shipment,
+  createdBy,
+}) {
   const carriers = users.filter((u) => normalizeRole(u.role) === 'carrier');
 
   console.log('BROJ PRIJEVOZNIKA ZA OBAVIJEST:', carriers.length);
@@ -867,7 +871,7 @@ function addNewShipmentNotifications({ users, shipment, createdBy }) {
     }))
   );
 
- carriers.forEach((carrier) => {
+for (const carrier of carriers) {
    const notificationTitle = t(
      carrier.id,
      'Novi teret',
@@ -895,7 +899,7 @@ function addNewShipmentNotifications({ users, shipment, createdBy }) {
      },
    });
 
-   sendPushNotificationToUser(
+   await sendPushNotificationToUser(
      carrier.id,
      notificationTitle,
      notificationMessage,
@@ -2113,7 +2117,7 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
 });
 
 // ================= SHIPMENTS =================
-app.post('/shipments', authMiddleware, (req, res) => {
+app.post('/shipments', authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== 'sender') {
       return res.status(403).json({
@@ -2375,7 +2379,7 @@ app.post('/shipments', authMiddleware, (req, res) => {
     shipments.unshift(newShipment);
     writeJson(shipmentsFile, shipments);
 
-    addNewShipmentNotifications({
+    await addNewShipmentNotifications({
       users,
       shipment: newShipment,
       createdBy: req.user.id,
