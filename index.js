@@ -351,11 +351,12 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
 
     const acceptedAmount = Number(acceptedOffer.amount);
 
-    const calculatedCommission = acceptedAmount * 0.05;
+    const calculatedCommission =
+      acceptedAmount <= 100
+        ? 5
+        : acceptedAmount * 0.07;
 
-    const commissionAmount = Math.round(
-      Math.max(calculatedCommission, 5) * 100
-    );
+    const commissionAmount = Math.round(calculatedCommission * 100);
 
     if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
       return res.status(400).json({
@@ -3175,7 +3176,9 @@ const senderRating = senderUser
 
    const provizijaIznos =
      acceptedPrice !== null
-       ? Math.max(acceptedPrice * 0.05, 5)
+       ? acceptedPrice <= 100
+         ? 5
+         : acceptedPrice * 0.07
        : null;
 
     res.json({
