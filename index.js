@@ -1253,6 +1253,14 @@ const pageText = (hr, en) =>
 
 app.post('/register', async (req, res) => {
   try {
+      console.log('REGISTER BODY:', {
+        fullName: req.body.fullName,
+        companyName: req.body.companyName,
+        phone: req.body.phone,
+        email: req.body.email,
+        role: req.body.role,
+        country: req.body.country,
+      });
     const users = readJson(usersFile);
 
     const fullName = normalizeString(req.body.fullName || req.body.ime);
