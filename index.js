@@ -918,15 +918,25 @@ for (const carrier of carriers) {
 
 
 function maskAddressKeepStreet(address) {
-  const value = normalizeString(address);
+  let value = normalizeString(address);
   if (!value) return '';
 
-  const match = value.match(/^(.+?)(\s+\d+[a-zA-Z/-]*)$/);
-  if (match) {
-    return match[1].trim();
-  }
+  // Ukloni e-mail adresu
+  value = value.replace(
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
+    ''
+  );
 
-  return value;
+  // Ukloni sve što počinje oznakama za kontakt
+  value = value.replace(
+    /(Ansprechpartner|Kontakt|Contact|Telefon|Telephone|Phone|Mobitel|Mobile|E-mail|Email)\s*:?.*$/i,
+    ''
+  );
+
+  // Ukloni kućni broj ako se nalazi na kraju preostale adrese
+  value = value.replace(/\s+\d+[a-zA-Z/-]*\s*$/, '');
+
+  return value.trim();
 }
 
 function getShipmentField(shipment, keys = []) {
