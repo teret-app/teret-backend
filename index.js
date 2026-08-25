@@ -2204,42 +2204,60 @@ app.post('/shipments', authMiddleware, async (req, res) => {
       });
     }
 
-    let satiLicitacije = 24;
+  let satiLicitacije = 24;
 
-    const normalizedDuration =
-      trajanjeLicitacije.toLowerCase();
+  const normalizedDuration =
+    trajanjeLicitacije.toLowerCase();
 
-    if (
-      normalizedDuration === '1 sat' ||
-      normalizedDuration === '1 hour' ||
-      normalizedDuration === '1h'
-    ) {
-      satiLicitacije = 1;
-    } else if (
-      normalizedDuration === '2 sata' ||
-      normalizedDuration === '2 hours' ||
-      normalizedDuration === '2h'
-    ) {
-      satiLicitacije = 2;
-    } else if (
-      normalizedDuration === '6 sati' ||
-      normalizedDuration === '6 hours' ||
-      normalizedDuration === '6h'
-    ) {
-      satiLicitacije = 6;
-    } else if (
-      normalizedDuration === '12 sati' ||
-      normalizedDuration === '12 hours' ||
-      normalizedDuration === '12h'
-    ) {
-      satiLicitacije = 12;
-    } else if (
-      normalizedDuration === '24 sata' ||
-      normalizedDuration === '24 hours' ||
-      normalizedDuration === '24h'
-    ) {
-      satiLicitacije = 24;
-    }
+  if (
+    normalizedDuration === '1 sat' ||
+    normalizedDuration === '1 hour' ||
+    normalizedDuration === '1h'
+  ) {
+    satiLicitacije = 1;
+  } else if (
+    normalizedDuration === '2 sata' ||
+    normalizedDuration === '2 hours' ||
+    normalizedDuration === '2h'
+  ) {
+    satiLicitacije = 2;
+  } else if (
+    normalizedDuration === '6 sati' ||
+    normalizedDuration === '6 hours' ||
+    normalizedDuration === '6h'
+  ) {
+    satiLicitacije = 6;
+  } else if (
+    normalizedDuration === '12 sati' ||
+    normalizedDuration === '12 hours' ||
+    normalizedDuration === '12h'
+  ) {
+    satiLicitacije = 12;
+  } else if (
+    normalizedDuration === '24 sata' ||
+    normalizedDuration === '24 hours' ||
+    normalizedDuration === '24h'
+  ) {
+    satiLicitacije = 24;
+  } else if (
+    normalizedDuration === '48 sati' ||
+    normalizedDuration === '48 hours' ||
+    normalizedDuration === '48h'
+  ) {
+    satiLicitacije = 48;
+  } else if (
+    normalizedDuration === '72 sata' ||
+    normalizedDuration === '72 hours' ||
+    normalizedDuration === '72h'
+  ) {
+    satiLicitacije = 72;
+  } else if (
+    normalizedDuration === '7 dana' ||
+    normalizedDuration === '7 days' ||
+    normalizedDuration === '7d'
+  ) {
+    satiLicitacije = 168;
+  }
 
     const licitacijaZavrsavaAt = new Date(
       Date.now() + satiLicitacije * 60 * 60 * 1000
@@ -2989,34 +3007,60 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
     const trajanjeLicitacije =
       oldShipment.trajanje_licitacije || '24 sata';
 
-    let satiLicitacije = 24;
-if (
-  trajanjeLicitacije === '1 sat' ||
-  trajanjeLicitacije === '1h'
-) {
-  satiLicitacije = 1;
-}
+ let satiLicitacije = 24;
 
-if (
-  trajanjeLicitacije === '2 sata' ||
-  trajanjeLicitacije === '2h'
-) {
-  satiLicitacije = 2;
-}
-    if (trajanjeLicitacije === '6 sati') {
-      satiLicitacije = 6;
-    }
+ const normalizedDuration =
+   trajanjeLicitacije.toLowerCase();
 
-    if (
-      trajanjeLicitacije === '12 sati' ||
-      trajanjeLicitacije === '12h'
-    ) {
-      satiLicitacije = 12;
-    }
-
-    if (trajanjeLicitacije === '24 sata') {
-      satiLicitacije = 24;
-    }
+ if (
+   normalizedDuration === '1 sat' ||
+   normalizedDuration === '1 hour' ||
+   normalizedDuration === '1h'
+ ) {
+   satiLicitacije = 1;
+ } else if (
+   normalizedDuration === '2 sata' ||
+   normalizedDuration === '2 hours' ||
+   normalizedDuration === '2h'
+ ) {
+   satiLicitacije = 2;
+ } else if (
+   normalizedDuration === '6 sati' ||
+   normalizedDuration === '6 hours' ||
+   normalizedDuration === '6h'
+ ) {
+   satiLicitacije = 6;
+ } else if (
+   normalizedDuration === '12 sati' ||
+   normalizedDuration === '12 hours' ||
+   normalizedDuration === '12h'
+ ) {
+   satiLicitacije = 12;
+ } else if (
+   normalizedDuration === '24 sata' ||
+   normalizedDuration === '24 hours' ||
+   normalizedDuration === '24h'
+ ) {
+   satiLicitacije = 24;
+ } else if (
+   normalizedDuration === '48 sati' ||
+   normalizedDuration === '48 hours' ||
+   normalizedDuration === '48h'
+ ) {
+   satiLicitacije = 48;
+ } else if (
+   normalizedDuration === '72 sata' ||
+   normalizedDuration === '72 hours' ||
+   normalizedDuration === '72h'
+ ) {
+   satiLicitacije = 72;
+ } else if (
+   normalizedDuration === '7 dana' ||
+   normalizedDuration === '7 days' ||
+   normalizedDuration === '7d'
+ ) {
+   satiLicitacije = 168;
+ }
 
     const licitacijaZavrsavaAt = new Date(
       Date.now() + satiLicitacije * 60 * 60 * 1000
