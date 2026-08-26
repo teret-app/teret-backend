@@ -1589,6 +1589,7 @@ app.post('/login', async (req, res) => {
       users.map((u) => ({
         id: u.id,
         email: u.email,
+        role: u.role,
         emailVerified: u.emailVerified,
       }))
     );
