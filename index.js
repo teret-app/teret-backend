@@ -2204,6 +2204,86 @@ app.post('/shipments', authMiddleware, async (req, res) => {
         ),
       });
     }
+        const requiredShipmentFields = {
+          adresa_utovara: req.body.adresa_utovara,
+          adresa_istovara: req.body.adresa_istovara,
+          trajanje_licitacije: req.body.trajanje_licitacije,
+          rok_preuzimanja: req.body.rok_preuzimanja,
+          tezina_cca_kg: req.body.tezina_cca_kg,
+          broj_paleta: req.body.broj_paleta,
+          duzina_cm: req.body.duzina_cm,
+          sirina_cm: req.body.sirina_cm,
+          visina_cm: req.body.visina_cm,
+          nacin_utovara: req.body.nacin_utovara,
+          tip_lokacije_utovara: req.body.tip_lokacije_utovara,
+          tip_lokacije_istovara: req.body.tip_lokacije_istovara,
+          broj_telefona: req.body.broj_telefona,
+        };
+
+        const missingRequiredField = Object.entries(
+          requiredShipmentFields
+        ).find(([_, value]) =>
+          value === undefined ||
+          value === null ||
+          String(value).trim() === ''
+        );
+
+        if (missingRequiredField) {
+          return res.status(400).json({
+            message: apiText(
+              req,
+              'Sva obavezna polja moraju biti popunjena.',
+              'All required shipment fields must be completed.'
+            ),
+          });
+        }
+
+        const loadingLocationType =
+          normalizeString(req.body.tip_lokacije_utovara);
+
+        const unloadingLocationType =
+          normalizeString(req.body.tip_lokacije_istovara);
+
+        if (
+          (loadingLocationType === 'Zgrada' ||
+            loadingLocationType === 'Poslovni prostor') &&
+          !normalizeString(req.body.kat_utovara)
+        ) {
+          return res.status(400).json({
+            message: apiText(
+              req,
+              'Kat utovara je obavezan za odabrani tip lokacije.',
+              'The loading floor is required for the selected location type.'
+            ),
+          });
+        }
+
+        if (
+          (unloadingLocationType === 'Zgrada' ||
+            unloadingLocationType === 'Poslovni prostor') &&
+          !normalizeString(req.body.kat_istovara)
+        ) {
+          return res.status(400).json({
+            message: apiText(
+              req,
+              'Kat istovara je obavezan za odabrani tip lokacije.',
+              'The unloading floor is required for the selected location type.'
+            ),
+          });
+        }
+
+        if (
+          !Array.isArray(req.body.slike) ||
+          req.body.slike.length === 0
+        ) {
+          return res.status(400).json({
+            message: apiText(
+              req,
+              'Potrebno je dodati najmanje jednu sliku tereta.',
+              'At least one shipment image is required.'
+            ),
+          });
+        }
 const shipmentText =
   `${nazivTereta} ${opisTereta}`.toLowerCase();
 
