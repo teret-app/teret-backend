@@ -2204,7 +2204,21 @@ app.post('/shipments', authMiddleware, async (req, res) => {
         ),
       });
     }
+const shipmentText =
+  `${nazivTereta} ${opisTereta}`.toLowerCase();
 
+const forbiddenTransportAdPattern =
+  /\b(nudim\s+(prijevoz|transport|transporte)|nudimo\s+(prijevoz|transport|transporte)|tražim\s+teret|trazim\s+teret|tražimo\s+teret|trazimo\s+teret|slobodan\s+(kombi|kamion|šleper|sleper)|slobodno\s+vozilo|povratna\s+tura|offering\s+transport|transport\s+available|available\s+(truck|van|vehicle)|looking\s+for\s+(load|cargo|freight))\b/i;
+
+if (forbiddenTransportAdPattern.test(shipmentText)) {
+  return res.status(400).json({
+    message: apiText(
+      req,
+      'Ovdje se može objaviti samo konkretan teret za prijevoz. Oglasi za nuđenje prijevoza ili traženje tereta nisu dopušteni.',
+      'Only specific shipments requiring transport can be posted here. Ads offering transport or looking for cargo are not allowed.'
+    ),
+  });
+}
   let satiLicitacije = 24;
 
   const normalizedDuration =
@@ -3007,6 +3021,7 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
    }
     const trajanjeLicitacije =
       oldShipment.trajanje_licitacije || '24 sata';
+
 
  let satiLicitacije = 24;
 
