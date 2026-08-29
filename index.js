@@ -2210,7 +2210,6 @@ app.post('/shipments', authMiddleware, async (req, res) => {
           trajanje_licitacije: req.body.trajanje_licitacije,
           rok_preuzimanja: req.body.rok_preuzimanja,
           tezina_cca_kg: req.body.tezina_cca_kg,
-          broj_paleta: req.body.broj_paleta,
           duzina_cm: req.body.duzina_cm,
           sirina_cm: req.body.sirina_cm,
           visina_cm: req.body.visina_cm,
