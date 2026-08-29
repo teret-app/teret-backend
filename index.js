@@ -4067,12 +4067,20 @@ const offers = readJson(offersFile);
       });
     }
 
-    if (shipment.status !== 'aktivan') {
+    const shipmentStatus =
+      normalizeString(shipment.status).toLowerCase();
+
+    const canAcceptOffer =
+      shipmentStatus === 'aktivan' ||
+      shipmentStatus === 'licitacija_zavrsena' ||
+      shipmentStatus === 'licitacija završena';
+
+    if (!canAcceptOffer) {
       return res.status(400).json({
         message: apiText(
           req,
-          'Ovaj teret više nije aktivan.',
-          'This shipment is no longer active.',
+          'Ponudu više nije moguće prihvatiti za ovaj teret.',
+          'An offer can no longer be accepted for this shipment.',
         ),
       });
     }
