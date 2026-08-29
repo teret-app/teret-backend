@@ -1101,7 +1101,7 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
 
 const UNVERIFIED_ACCOUNT_RETENTION_HOURS = 48;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
+const AUCTION_CHECK_INTERVAL_MS = 60 * 1000;
 function cleanupOldNotifications() {
   const notifications = readJson(notificationsFile);
 
@@ -1131,13 +1131,16 @@ function cleanupOldNotifications() {
 
 function cleanupExpiredShipments() {
   const shipments = readJson(shipmentsFile);
+  const offers = readJson(offersFile);
+
   let changed = false;
 
   shipments.forEach((shipment) => {
     if (shipment.status !== 'aktivan') return;
     if (!shipment.licitacija_zavrsava_at) return;
 
-    const endTime = new Date(shipment.licitacija_zavrsava_at).getTime();
+    const endTime =
+      new Date(shipment.licitacija_zavrsava_at).getTime();
 
     if (!Number.isFinite(endTime)) return;
 
@@ -1145,12 +1148,54 @@ function cleanupExpiredShipments() {
       shipment.status = 'licitacija_zavrsena';
       shipment.updatedAt = nowIso();
       changed = true;
+
+      const shipmentOffers = offers.filter(
+        (offer) =>
+          Number(offer.shipmentId) === Number(shipment.id) &&
+          offer.status !== 'rejected'
+      );
+
+      if (shipmentOffers.length > 0) {
+        const notificationTitle = t(
+          shipment.senderId,
+          'Licitacija je završena',
+          'Auction ended'
+        );
+
+        const notificationMessage = t(
+          shipment.senderId,
+          `Imate ${shipmentOffers.length} pristiglih ponuda. Odaberite prijevoznika.`,
+          `You have ${shipmentOffers.length} offers. Select a carrier.`
+        );
+
+        addNotification({
+          userId: shipment.senderId,
+          type: 'auction_ended',
+          title: notificationTitle,
+          message: notificationMessage,
+          shipmentId: shipment.id,
+          createdBy: null,
+        });
+
+        sendPushNotificationToUser(
+          shipment.senderId,
+          notificationTitle,
+          notificationMessage,
+          {
+            type: 'auction_ended',
+            shipmentId: shipment.id,
+          }
+        );
+      }
     }
   });
 
   if (changed) {
     writeJson(shipmentsFile, shipments);
-    console.log('Cleanup: istekle licitacije označene kao završene.');
+
+    console.log(
+      'Cleanup: istekle licitacije označene kao završene.'
+    );
   }
 }
 
@@ -4661,7 +4706,10 @@ setInterval(
   runCleanup,
   CLEANUP_INTERVAL_MS
 );
-
+setInterval(
+  cleanupExpiredShipments,
+  AUCTION_CHECK_INTERVAL_MS
+);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ TeReT backend radi na portu ${PORT}`);
 });
