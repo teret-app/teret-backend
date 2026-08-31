@@ -4764,7 +4764,11 @@ app.post('/ratings', authMiddleware, (req, res) => {
 app.get('/users/:id/ratings', authMiddleware, (req, res) => {
   try {
     const ratings = readJson(ratingsFile);
+    const users = readJson(usersFile);
 
+    const profileUser = users.find(
+     (u) => Number(u.id) === Number(req.params.id)
+    );
     const userRatings = ratings.filter(
       (r) => Number(r.ratedUserId) === Number(req.params.id)
     );
@@ -4782,6 +4786,9 @@ app.get('/users/:id/ratings', authMiddleware, (req, res) => {
     res.json({
       averageRating,
       ratingsCount: userRatings.length,
+      reliabilityMisses: Number(profileUser?.reliabilityMisses || 0),
+      senderNoSelectionCount: Number(profileUser?.senderNoSelectionCount || 0),
+      carrierNoPaymentCount: Number(profileUser?.carrierNoPaymentCount || 0),
       ratings: userRatings,
     });
   } catch (error) {
