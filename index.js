@@ -104,7 +104,7 @@ app.use(cors());
 app.post(
   '/stripe/webhook',
   express.raw({ type: 'application/json' }),
-  (req, res) => {
+  async (req, res) => {
     if (!stripe) {
      return res.status(500).send(
        apiText(
@@ -154,7 +154,7 @@ app.post(
 
         const shipmentId = Number(session.metadata?.shipmentId);
         const carrierId = Number(session.metadata?.carrierId);
-
+        const offerId = Number(session.metadata?.offerId);
         const offers = readJson(offersFile);
         const shipments = readJson(shipmentsFile);
 
@@ -164,13 +164,9 @@ app.post(
 
         const offer = offers.find(
           (o) =>
+            Number(o.id) === offerId &&
             Number(o.shipmentId) === shipmentId &&
-            Number(o.carrierId) === carrierId &&
-            (
-              o.status === 'accepted' ||
-              o.status === 'prihvaceno' ||
-              o.status === 'prihvaćeno'
-            )
+            Number(o.carrierId) === carrierId
         );
 
         if (!shipment || !offer) {
@@ -185,7 +181,42 @@ app.post(
         if (offer.contactUnlocked === true) {
           return res.json({ received: true });
         }
+const commissionDeadline =
+  new Date(
+    offer.commissionPaymentDeadlineAt ||
+    shipment.commissionPaymentDeadlineAt ||
+    0
+  ).getTime();
 
+if (
+  !Number.isFinite(commissionDeadline) ||
+  commissionDeadline <= Date.now()
+) {
+  console.log(
+    'Stripe webhook: plaćanje je stiglo nakon isteka roka.',
+    {
+      shipmentId,
+      carrierId,
+      offerId,
+    }
+  );
+
+  if (session.payment_intent) {
+    await stripe.refunds.create({
+      payment_intent: session.payment_intent,
+    });
+  }
+
+  offer.commissionPaid = false;
+  offer.contactUnlocked = false;
+  offer.latePaymentRefunded = true;
+  offer.latePaymentRefundedAt = nowIso();
+  offer.updatedAt = nowIso();
+
+  writeJson(offersFile, offers);
+
+  return res.json({ received: true });
+}
         offer.commissionPaid = true;
         offer.contactUnlocked = true;
         offer.stripeSessionId = session.id;
@@ -348,7 +379,23 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
         ),
       });
     }
+const commissionDeadline =
+  new Date(
+    acceptedOffer.commissionPaymentDeadlineAt || 0
+  ).getTime();
 
+if (
+  !Number.isFinite(commissionDeadline) ||
+  commissionDeadline <= Date.now()
+) {
+  return res.status(400).json({
+    message: apiText(
+      req,
+      'Istekao je rok od 24 sata za plaćanje naknade.',
+      'The 24-hour service fee payment deadline has expired.'
+    ),
+  });
+}
     const acceptedAmount = Number(acceptedOffer.amount);
 
     const calculatedCommission =
@@ -1100,7 +1147,9 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
 // ================= CLEANUP =================
 
 const UNVERIFIED_ACCOUNT_RETENTION_HOURS = 48;
-const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const AUCTION_DECISION_HOURS = 24;
+const COMMISSION_PAYMENT_HOURS = 24;
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const AUCTION_CHECK_INTERVAL_MS = 60 * 1000;
 function cleanupOldNotifications() {
   const notifications = readJson(notificationsFile);
@@ -1132,22 +1181,36 @@ function cleanupOldNotifications() {
 function cleanupExpiredShipments() {
   const shipments = readJson(shipmentsFile);
   const offers = readJson(offersFile);
+  const users = readJson(usersFile);
 
-  let changed = false;
+  let shipmentsChanged = false;
+  let offersChanged = false;
+  let usersChanged = false;
+
+  const now = Date.now();
 
   shipments.forEach((shipment) => {
-    if (shipment.status !== 'aktivan') return;
     if (!shipment.licitacija_zavrsava_at) return;
 
-    const endTime =
+    const auctionEnd =
       new Date(shipment.licitacija_zavrsava_at).getTime();
 
-    if (!Number.isFinite(endTime)) return;
+    if (!Number.isFinite(auctionEnd)) return;
 
-    if (endTime <= Date.now()) {
+    // Licitacija je završila
+    if (
+      shipment.status === 'aktivan' &&
+      auctionEnd <= now
+    ) {
       shipment.status = 'licitacija_zavrsena';
+
+      shipment.selectionDeadlineAt = new Date(
+        auctionEnd +
+        AUCTION_DECISION_HOURS * 60 * 60 * 1000
+      ).toISOString();
+
       shipment.updatedAt = nowIso();
-      changed = true;
+      shipmentsChanged = true;
 
       const shipmentOffers = offers.filter(
         (offer) =>
@@ -1164,8 +1227,8 @@ function cleanupExpiredShipments() {
 
         const notificationMessage = t(
           shipment.senderId,
-          `Imate ${shipmentOffers.length} pristiglih ponuda. Odaberite prijevoznika.`,
-          `You have ${shipmentOffers.length} offers. Select a carrier.`
+          `Imate ${shipmentOffers.length} pristiglih ponuda. Imate 24 sata za odabir prijevoznika.`,
+          `You have ${shipmentOffers.length} offers. You have 24 hours to select a carrier.`
         );
 
         addNotification({
@@ -1175,6 +1238,10 @@ function cleanupExpiredShipments() {
           message: notificationMessage,
           shipmentId: shipment.id,
           createdBy: null,
+          meta: {
+            selectionDeadlineAt: shipment.selectionDeadlineAt,
+          },
+
         });
 
         sendPushNotificationToUser(
@@ -1184,18 +1251,190 @@ function cleanupExpiredShipments() {
           {
             type: 'auction_ended',
             shipmentId: shipment.id,
+            selectionDeadlineAt: shipment.selectionDeadlineAt,
           }
         );
       }
     }
+
+    // Naručitelj nije odabrao prijevoznika u roku 24 sata
+    if (
+      shipment.status === 'licitacija_zavrsena' &&
+      shipment.selectionDeadlineAt
+    ) {
+      const selectionDeadline =
+        new Date(shipment.selectionDeadlineAt).getTime();
+
+      if (
+        Number.isFinite(selectionDeadline) &&
+        selectionDeadline <= now
+      ) {
+        const shipmentOffers = offers.filter(
+          (offer) =>
+            Number(offer.shipmentId) === Number(shipment.id) &&
+            offer.status !== 'rejected'
+        );
+
+        shipment.status = 'zatvoreno_bez_odabira';
+        shipment.closedAt = nowIso();
+        shipment.updatedAt = nowIso();
+        shipmentsChanged = true;
+
+        // Propust se bilježi samo ako je bilo ponuda
+        if (shipmentOffers.length > 0) {
+          const sender = users.find(
+            (user) =>
+              Number(user.id) === Number(shipment.senderId)
+          );
+
+          if (sender) {
+            sender.reliabilityMisses =
+              Number(sender.reliabilityMisses || 0) + 1;
+
+            sender.senderNoSelectionCount =
+              Number(sender.senderNoSelectionCount || 0) + 1;
+
+            sender.updatedAt = nowIso();
+            usersChanged = true;
+          }
+
+          const notificationTitle = t(
+            shipment.senderId,
+            'Rok za odabir je istekao',
+            'Selection deadline expired'
+          );
+
+          const notificationMessage = t(
+            shipment.senderId,
+            'Niste odabrali prijevoznika u roku od 24 sata. Propust je evidentiran u pouzdanosti računa.',
+            'You did not select a carrier within 24 hours. This has been recorded in your account reliability.'
+          );
+
+          addNotification({
+            userId: shipment.senderId,
+            type: 'selection_deadline_missed',
+            title: notificationTitle,
+            message: notificationMessage,
+            shipmentId: shipment.id,
+            createdBy: null,
+          });
+
+          sendPushNotificationToUser(
+            shipment.senderId,
+            notificationTitle,
+            notificationMessage,
+            {
+              type: 'selection_deadline_missed',
+              shipmentId: shipment.id,
+            }
+          );
+        }
+      }
+    }
+        // Prijevoznik nije platio proviziju u roku 24 sata
+        if (
+          shipment.status === 'prihvaceno' &&
+          shipment.commissionPaymentDeadlineAt
+        ) {
+          const commissionDeadline =
+            new Date(shipment.commissionPaymentDeadlineAt).getTime();
+
+          if (
+            Number.isFinite(commissionDeadline) &&
+            commissionDeadline <= now &&
+            shipment.commissionPaid !== true
+          ) {
+            const acceptedOffer = offers.find(
+              (offer) =>
+                Number(offer.id) === Number(shipment.acceptedOfferId)
+            );
+
+            // Prihvaćenu ponudu odbijamo jer provizija nije plaćena
+            if (acceptedOffer) {
+              acceptedOffer.status = 'rejected';
+              acceptedOffer.updatedAt = nowIso();
+              offersChanged = true;
+            }
+
+            // Teret zatvaramo bez realizacije
+            shipment.status = 'zatvoreno_bez_placanja';
+            shipment.closedAt = nowIso();
+            shipment.updatedAt = nowIso();
+            shipmentsChanged = true;
+
+            const carrierTitle = t(
+              shipment.acceptedCarrierId,
+              'Rok za plaćanje je istekao',
+              'Payment deadline expired',
+            );
+
+            const carrierMessage = t(
+              shipment.acceptedCarrierId,
+              'Niste platili naknadu za uslugu u roku od 24 sata. Prijevoz je otkazan.',
+              'You did not pay the service fee within 24 hours. The transport has been cancelled.',
+            );
+
+            addNotification({
+              userId: shipment.acceptedCarrierId,
+              type: 'commission_payment_expired',
+              title: carrierTitle,
+              message: carrierMessage,
+              shipmentId: shipment.id,
+              createdBy: null,
+            });
+
+            sendPushNotificationToUser(
+              shipment.acceptedCarrierId,
+              carrierTitle,
+              carrierMessage,
+              {
+                type: 'commission_payment_expired',
+                shipmentId: shipment.id,
+              },
+            );
+
+            const senderTitle = t(
+              shipment.senderId,
+              'Prijevoz nije potvrđen',
+              'Transport not confirmed',
+            );
+
+            const senderMessage = t(
+              shipment.senderId,
+              'Odabrani prijevoznik nije platio naknadu za uslugu u roku od 24 sata. Prijevoz je otkazan.',
+              'The selected carrier did not pay the service fee within 24 hours. The transport has been cancelled.',
+            );
+
+            addNotification({
+              userId: shipment.senderId,
+              type: 'commission_payment_expired',
+              title: senderTitle,
+              message: senderMessage,
+              shipmentId: shipment.id,
+              createdBy: null,
+            });
+
+            sendPushNotificationToUser(
+              shipment.senderId,
+              senderTitle,
+              senderMessage,
+              {
+                type: 'commission_payment_expired',
+                shipmentId: shipment.id,
+              },
+            );
+          }
+        }
   });
 
-  if (changed) {
+  if (shipmentsChanged) {
     writeJson(shipmentsFile, shipments);
-
-    console.log(
-      'Cleanup: istekle licitacije označene kao završene.'
-    );
+  }
+if (offersChanged) {
+  writeJson(offersFile, offers);
+}
+  if (usersChanged) {
+    writeJson(usersFile, users);
   }
 }
 
@@ -4129,7 +4368,26 @@ const offers = readJson(offersFile);
         ),
       });
     }
+if (
+  shipmentStatus === 'licitacija_zavrsena' ||
+  shipmentStatus === 'licitacija završena'
+) {
+  const selectionDeadline =
+    new Date(shipment.selectionDeadlineAt || 0).getTime();
 
+  if (
+    !Number.isFinite(selectionDeadline) ||
+    selectionDeadline <= Date.now()
+  ) {
+    return res.status(400).json({
+      message: apiText(
+        req,
+        'Istekao je rok od 24 sata za odabir prijevoznika.',
+        'The 24-hour deadline for selecting a carrier has expired.',
+      ),
+    });
+  }
+}
     offer.status = 'accepted';
     offer.updatedAt = nowIso();
 
@@ -4149,6 +4407,13 @@ const offers = readJson(offersFile);
     shipment.status = 'prihvaceno';
     shipment.acceptedOfferId = offer.id;
     shipment.acceptedCarrierId = offer.carrierId;
+    shipment.commissionPaymentDeadlineAt = new Date(
+      Date.now() +
+      COMMISSION_PAYMENT_HOURS * 60 * 60 * 1000
+    ).toISOString();
+
+    offer.commissionPaymentDeadlineAt =
+      shipment.commissionPaymentDeadlineAt;
     shipment.updatedAt = nowIso();
 
     writeJson(offersFile, offers);
