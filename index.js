@@ -1355,7 +1355,21 @@ function cleanupExpiredShipments() {
               acceptedOffer.updatedAt = nowIso();
               offersChanged = true;
             }
+const carrier = users.find(
+  (user) =>
+    Number(user.id) === Number(shipment.acceptedCarrierId)
+);
 
+if (carrier) {
+  carrier.reliabilityMisses =
+    Number(carrier.reliabilityMisses || 0) + 1;
+
+  carrier.carrierNoPaymentCount =
+    Number(carrier.carrierNoPaymentCount || 0) + 1;
+
+  carrier.updatedAt = nowIso();
+  usersChanged = true;
+}
             // Teret zatvaramo bez realizacije
             shipment.status = 'zatvoreno_bez_placanja';
             shipment.closedAt = nowIso();
