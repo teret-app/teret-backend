@@ -1982,9 +1982,36 @@ app.post('/login', async (req, res) => {
     });
   }
 });
+const passwordResetAttempts = new Map();
 
+const RESET_IP_WINDOW_MS = 15 * 60 * 1000;
+const RESET_IP_MAX_ATTEMPTS = 5;
 app.post('/forgot-password', async (req, res) => {
   try {
+  const ip =
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.ip ||
+    'unknown';
+
+  const now = Date.now();
+  const previousAttempts = passwordResetAttempts.get(ip) || [];
+
+  const recentAttempts = previousAttempts.filter(
+    (time) => now - time < RESET_IP_WINDOW_MS
+  );
+
+  if (recentAttempts.length >= RESET_IP_MAX_ATTEMPTS) {
+    return res.status(429).json({
+      message: apiText(
+        req,
+        'Previše zahtjeva za promjenu lozinke. Pokušajte ponovno za 15 minuta.',
+        'Too many password reset requests. Please try again in 15 minutes.'
+      ),
+    });
+  }
+
+  recentAttempts.push(now);
+  passwordResetAttempts.set(ip, recentAttempts);
     const email = normalizeString(req.body.email).toLowerCase();
     const users = readJson(usersFile);
 
