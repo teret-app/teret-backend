@@ -2003,7 +2003,22 @@ app.post('/forgot-password', async (req, res) => {
         message: genericMessage,
       });
     }
+const RESET_COOLDOWN_MS = 15 * 60 * 1000;
 
+const lastResetRequest = Number(
+  user.resetPasswordRequestedAt || 0
+);
+
+if (
+  lastResetRequest &&
+  Date.now() - lastResetRequest < RESET_COOLDOWN_MS
+) {
+  return res.json({
+    message: genericMessage,
+  });
+}
+
+user.resetPasswordRequestedAt = Date.now();
     const resetToken = crypto.randomBytes(32).toString('hex');
 
     user.resetPasswordToken = resetToken;
