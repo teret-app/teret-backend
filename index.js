@@ -3217,6 +3217,96 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
   });
 }
 });
+
+app.delete('/admin/shipments/:id', authMiddleware, (req, res) => {
+  try {
+    const users = readJson(usersFile);
+
+    const currentUser = users.find(
+      (u) => Number(u.id) === Number(req.user.id)
+    );
+
+    if (!currentUser || currentUser.isAdmin !== true) {
+      return res.status(403).json({
+        message: apiText(
+          req,
+          'Nemate administratorsko pravo za brisanje objave.',
+          'You do not have administrator permission to delete this listing.'
+        ),
+      });
+    }
+
+    const shipments = readJson(shipmentsFile);
+    const offers = readJson(offersFile);
+    const notifications = readJson(notificationsFile);
+
+    const shipmentId = Number(req.params.id);
+
+    const shipment = shipments.find(
+      (s) => Number(s.id) === shipmentId
+    );
+
+    if (!shipment) {
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Objava nije pronađena.',
+          'The listing was not found.'
+        ),
+      });
+    }
+if (
+  shipment.commissionPaid === true ||
+  shipment.contactUnlocked === true
+) {
+  return res.status(400).json({
+    message: apiText(
+      req,
+      'Nije moguće obrisati objavu za koju je već plaćena naknada.',
+      'A listing with a paid service fee cannot be deleted.'
+    ),
+  });
+}
+    const filteredShipments = shipments.filter(
+      (s) => Number(s.id) !== shipmentId
+    );
+
+    const filteredOffers = offers.filter(
+      (o) => Number(o.shipmentId) !== shipmentId
+    );
+
+    const filteredNotifications = notifications.filter(
+      (n) => Number(n.shipmentId) !== shipmentId
+    );
+
+    writeJson(shipmentsFile, filteredShipments);
+    writeJson(offersFile, filteredOffers);
+    writeJson(notificationsFile, filteredNotifications);
+
+    console.log(
+      `ADMIN DELETE: user ${currentUser.id} deleted shipment ${shipmentId}`
+    );
+
+    return res.json({
+      success: true,
+      message: apiText(
+        req,
+        'Objava je trajno obrisana.',
+        'The listing has been permanently deleted.'
+      ),
+    });
+  } catch (error) {
+    console.error('Greška DELETE /admin/shipments/:id:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
+  }
+});
 app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
   try {
     if (req.user.role !== 'sender') {
