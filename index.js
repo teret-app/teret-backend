@@ -2019,7 +2019,7 @@ app.post('/forgot-password', async (req, res) => {
             ? 'en'
             : 'hr'
       }`;
-    console.log('PASSWORD RESET EMAIL IDE NA:', user.email);
+
     await mailTransporter.sendMail({
       from: `"TeReT" <${process.env.MAIL_USER}>`,
       to: user.email,
