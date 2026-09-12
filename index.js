@@ -3392,7 +3392,8 @@ app.get(
             mjesto_utovara: shipment.mjesto_utovara,
             drzava_istovara: shipment.drzava_istovara,
             mjesto_istovara: shipment.mjesto_istovara,
-
+            adresa_utovara: shipment.adresa_utovara || '',
+            adresa_istovara: shipment.adresa_istovara || '',
             status: shipment.status,
             createdAt: shipment.createdAt,
             auctionEndsAt: shipment.licitacija_zavrsava_at,
