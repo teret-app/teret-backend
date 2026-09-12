@@ -661,6 +661,21 @@ function authMiddleware(req, res, next) {
     });
   }
 }
+function adminMiddleware(req, res, next) {
+  const user = getUserById(req.user.id);
+
+  if (!user || user.isAdmin !== true) {
+    return res.status(403).json({
+      message: apiText(
+        req,
+        'Nemate administratorska prava.',
+        'You do not have administrator privileges.'
+      ),
+    });
+  }
+
+  next();
+}
 function getUserById(userId) {
   const users = readJson(usersFile);
   return users.find((u) => Number(u.id) === Number(userId)) || null;
@@ -3259,7 +3274,78 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
   });
 }
 });
+app.get(
+  '/admin/stats',
+  authMiddleware,
+  adminMiddleware,
+  (req, res) => {
+    try {
+      const users = readJson(usersFile);
+      const shipments = readJson(shipmentsFile);
+      const offers = readJson(offersFile);
 
+      const carriers = users.filter(
+        (user) => normalizeRole(user.role) === 'carrier'
+      ).length;
+
+      const senders = users.filter(
+        (user) => normalizeRole(user.role) === 'sender'
+      ).length;
+
+      const activeShipments = shipments.filter(
+        (shipment) =>
+          shipment.status === 'aktivan' ||
+          shipment.status === 'active'
+      ).length;
+
+      const acceptedShipments = shipments.filter(
+        (shipment) =>
+          shipment.status === 'prihvaceno' ||
+          shipment.status === 'prihvaćeno' ||
+          shipment.status === 'accepted'
+      ).length;
+
+      const finishedShipments = shipments.filter(
+        (shipment) =>
+          shipment.status === 'completed' ||
+          shipment.status === 'zavrseno' ||
+          shipment.status === 'završeno'
+      ).length;
+
+      const unpaidCommissions = shipments.filter(
+        (shipment) =>
+          (
+            shipment.status === 'prihvaceno' ||
+            shipment.status === 'prihvaćeno' ||
+            shipment.status === 'accepted'
+          ) &&
+          shipment.commissionPaid !== true
+      ).length;
+
+      return res.json({
+        totalUsers: users.length,
+        carriers,
+        senders,
+        totalShipments: shipments.length,
+        activeShipments,
+        acceptedShipments,
+        finishedShipments,
+        totalOffers: offers.length,
+        unpaidCommissions,
+      });
+    } catch (error) {
+      console.error('Greška GET /admin/stats:', error);
+
+      return res.status(500).json({
+        message: apiText(
+          req,
+          'Greška pri dohvaćanju administratorske statistike.',
+          'Failed to load administrator statistics.'
+        ),
+      });
+    }
+  }
+);
 app.delete('/admin/shipments/:id', authMiddleware, (req, res) => {
   try {
     const users = readJson(usersFile);
@@ -4538,6 +4624,7 @@ if (
   }
 }
     offer.status = 'accepted';
+    offer.acceptedAt = nowIso();
     offer.updatedAt = nowIso();
 
     const rejectedOffers = [];
