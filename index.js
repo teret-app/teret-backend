@@ -3385,6 +3385,8 @@ app.get(
               sender?.naziv_tvrtke ||
               'Nepoznat korisnik',
 
+              senderEmail: sender?.email || '',
+              senderPhone: sender?.phone || '',
             naziv_tereta: shipment.naziv_tereta,
             drzava_utovara: shipment.drzava_utovara,
             mjesto_utovara: shipment.mjesto_utovara,
