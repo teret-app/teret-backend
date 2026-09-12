@@ -1095,7 +1095,18 @@ function getOfferBidHistory(offer) {
     },
   ];
 }
-
+function getTotalBidCount(shipment, offers) {
+  return offers
+    .filter(
+      (offer) =>
+        Number(offer.shipmentId) === Number(shipment.id)
+    )
+    .reduce(
+      (total, offer) =>
+        total + getOfferBidHistory(offer).length,
+      0
+    );
+}
 function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [] }) {
   const shipmentOffers = offers.filter(
     (o) => Number(o.shipmentId) === Number(shipment.id)
@@ -3151,7 +3162,7 @@ const senderRating = getUserRatingSummary(
             ),
         senderRatingAverage: senderRating.averageRating,
         senderRatingsCount: senderRating.ratingsCount,
-        offersCount: shipmentOffers.length,
+        offersCount: getTotalBidCount(shipment, offers),
         lowestOffer,
         hasMyOffer: !!myOffer,
         myOfferAmount: myOffer ? toNumber(myOffer.amount, null) : null,
@@ -3257,7 +3268,7 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
         return {
           ...shipment,
           slike: [],
-          offersCount: validOffers.length,
+       offersCount: getTotalBidCount(shipment, offers),
           lowestOffer,
         };
       });
@@ -3398,7 +3409,7 @@ app.get(
             createdAt: shipment.createdAt,
             auctionEndsAt: shipment.licitacija_zavrsava_at,
 
-            offersCount: shipmentOffers.length,
+            offersCount: getTotalBidCount(shipment, offers),
           };
         })
         .sort(
@@ -3827,7 +3838,15 @@ const shipmentOffers = offers.filter(
   (o) => Number(o.shipmentId) === Number(shipment.id)
 );
 
-const offersCount = shipmentOffers.length;
+const bidHistory = buildBidHistoryForViewer({
+  shipment,
+  offers,
+  users,
+  viewer: req.user,
+  ratings,
+});
+
+const offersCount = bidHistory.length;
     if (isCarrierRole(req.user.role)) {
       if (!Array.isArray(shipment.viewedBy)) {
         shipment.viewedBy = [];
@@ -4067,7 +4086,7 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
     res.json({
       shipmentId: shipment.id,
       shipmentStatus: shipment.status,
-      offersCount: activeOffers.length,
+      offersCount: bidHistory.length,
       lowestOffer,
       myOfferAmount: myOffer ? toNumber(myOffer.amount, null) : null,
       myOfferStatus: myOffer ? myOffer.status : null,
@@ -4526,12 +4545,12 @@ app.get('/my-offers', authMiddleware, (req, res) => {
       shipment: shipment
         ? {
             ...shipment,
-            offersCount: shipmentOffers.length,
+            offersCount: getTotalBidCount(shipment, offers),
             lowestOffer,
           }
         : null,
 
-      offersCount: shipmentOffers.length,
+      offersCount: getTotalBidCount(shipment, offers),
     };
       });
 
