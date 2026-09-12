@@ -3347,6 +3347,77 @@ app.get(
     }
   }
 );
+app.get(
+  '/admin/shipments',
+  authMiddleware,
+  adminMiddleware,
+  (req, res) => {
+    try {
+      const users = readJson(usersFile);
+      const shipments = readJson(shipmentsFile);
+      const offers = readJson(offersFile);
+
+      const result = shipments
+        .filter(
+          (shipment) =>
+            shipment.status === 'aktivan' ||
+            shipment.status === 'active'
+        )
+        .map((shipment) => {
+          const sender = users.find(
+            (user) =>
+              Number(user.id) === Number(shipment.senderId)
+          );
+
+          const shipmentOffers = offers.filter(
+            (offer) =>
+              Number(offer.shipmentId) === Number(shipment.id) &&
+              offer.status !== 'rejected'
+          );
+
+          return {
+            id: shipment.id,
+            senderId: shipment.senderId,
+            senderName:
+              sender?.fullName ||
+              sender?.ime ||
+              sender?.companyName ||
+              sender?.naziv_tvrtke ||
+              'Nepoznat korisnik',
+
+            naziv_tereta: shipment.naziv_tereta,
+            drzava_utovara: shipment.drzava_utovara,
+            mjesto_utovara: shipment.mjesto_utovara,
+            drzava_istovara: shipment.drzava_istovara,
+            mjesto_istovara: shipment.mjesto_istovara,
+
+            status: shipment.status,
+            createdAt: shipment.createdAt,
+            auctionEndsAt: shipment.licitacija_zavrsava_at,
+
+            offersCount: shipmentOffers.length,
+          };
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt || 0) -
+            new Date(a.createdAt || 0)
+        );
+
+      return res.json(result);
+    } catch (error) {
+      console.error('Greška GET /admin/shipments:', error);
+
+      return res.status(500).json({
+        message: apiText(
+          req,
+          'Greška pri dohvaćanju aktivnih tereta.',
+          'Failed to load active shipments.'
+        ),
+      });
+    }
+  }
+);
 app.delete('/admin/shipments/:id', authMiddleware, (req, res) => {
   try {
     const users = readJson(usersFile);
