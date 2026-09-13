@@ -1009,7 +1009,7 @@ function getShipmentField(shipment, keys = []) {
   }
   return '';
 }
-cd
+
 function getAnonymousUserLabel(userId, language = 'hr') {
   const id = Number(userId) || 0;
 
