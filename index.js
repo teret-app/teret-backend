@@ -1056,7 +1056,7 @@ const senderName =
   getShipmentField(shipment, ['senderName', 'fullName', 'ime', 'sender_full_name']) || '';
 
 const visibleSenderName =
-  showFullContact || viewer.role === 'sender'
+  showFullContact
     ? senderName
     : getAnonymousUserLabel(
         shipment.senderId,
@@ -3223,7 +3223,35 @@ const senderRating = getUserRatingSummary(
         ratingsCount: userRatings.length,
       };
     });
+result.sort((a, b) => {
+  const now = Date.now();
 
+  const endA = new Date(
+    a.licitacija_zavrsava_at ||
+    a.auctionEndsAt ||
+    a.auctionEndAt ||
+    0
+  ).getTime();
+
+  const endB = new Date(
+    b.licitacija_zavrsava_at ||
+    b.auctionEndsAt ||
+    b.auctionEndAt ||
+    0
+  ).getTime();
+
+  const remainingA =
+    Number.isFinite(endA) && endA > now
+      ? endA - now
+      : Number.MAX_SAFE_INTEGER;
+
+  const remainingB =
+    Number.isFinite(endB) && endB > now
+      ? endB - now
+      : Number.MAX_SAFE_INTEGER;
+
+  return remainingA - remainingB;
+});
     res.json(result);
  } catch (error) {
    console.error('Greška /shipments GET:', error);
