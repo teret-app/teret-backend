@@ -3369,11 +3369,7 @@ app.get(
       const offers = readJson(offersFile);
 
       const result = shipments
-        .filter(
-          (shipment) =>
-            shipment.status === 'aktivan' ||
-            shipment.status === 'active'
-        )
+
         .map((shipment) => {
           const sender = users.find(
             (user) =>
