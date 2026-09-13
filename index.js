@@ -1009,7 +1009,22 @@ function getShipmentField(shipment, keys = []) {
   }
   return '';
 }
+cd
+function getAnonymousUserLabel(userId, language = 'hr') {
+  const id = Number(userId) || 0;
 
+  const code = (
+    ((id * 7919) + 104729)
+      .toString(36)
+      .toUpperCase()
+      .slice(-4)
+      .padStart(4, '0')
+  );
+
+  return language === 'en'
+    ? `User ${code}`
+    : `Korisnik ${code}`;
+}
 function canUserSeeFullContact({ shipment, viewer, offers }) {
   if (!shipment || !viewer) return false;
 
@@ -1037,7 +1052,16 @@ function canUserSeeFullContact({ shipment, viewer, offers }) {
 
 function sanitizeShipmentForViewer(shipment, viewer, offers) {
   const showFullContact = canUserSeeFullContact({ shipment, viewer, offers });
+const senderName =
+  getShipmentField(shipment, ['senderName', 'fullName', 'ime', 'sender_full_name']) || '';
 
+const visibleSenderName =
+  showFullContact || viewer.role === 'sender'
+    ? senderName
+    : getAnonymousUserLabel(
+        shipment.senderId,
+        viewer.language
+      );
   const adresaUtovara =
     getShipmentField(shipment, ['adresa_utovara', 'pickupAddress', 'adresaUtovara']) || '';
   const adresaIstovara =
@@ -1047,6 +1071,9 @@ function sanitizeShipmentForViewer(shipment, viewer, offers) {
 
   return {
     ...shipment,
+        senderName: visibleSenderName,
+        fullName: visibleSenderName,
+        ime: visibleSenderName,
     adresa_utovara: showFullContact ? adresaUtovara : maskAddressKeepStreet(adresaUtovara),
     adresa_istovara: showFullContact ? adresaIstovara : maskAddressKeepStreet(adresaIstovara),
     phone: showFullContact ? phone : '',
@@ -3148,18 +3175,16 @@ const senderRating = getUserRatingSummary(
         ...sanitizeShipmentForViewer(shipment, req.user, offers),
         slike: [],
         senderId: senderUser ? Number(senderUser.id) : Number(shipment.senderId),
-        senderName: senderUser
-          ? senderUser.fullName ||
-            apiText(
-              req,
-              'Naručitelj',
-              'Sender'
-            )
-          : apiText(
-              req,
-              'Naručitelj',
-              'Sender'
-            ),
+      senderName: canUserSeeFullContact({
+        shipment,
+        viewer: req.user,
+        offers
+      })
+        ? (senderUser?.fullName || '')
+        : getAnonymousUserLabel(
+            shipment.senderId,
+            req.user.language
+          ),
         senderRatingAverage: senderRating.averageRating,
         senderRatingsCount: senderRating.ratingsCount,
         offersCount: getTotalBidCount(shipment, offers),
@@ -3951,7 +3976,7 @@ const senderRating = senderUser
       ...sanitized,
       isSenderOwner,
 isAcceptedCarrier: isAcceptedCarrier === true,
-      senderName: senderUser ? senderUser.fullName || '' : '',
+  senderName: sanitized.senderName || '',
 senderId: senderUser ? Number(senderUser.id) : null,
 
 senderRatingAverage: senderRating.averageRating,
