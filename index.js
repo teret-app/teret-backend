@@ -2460,6 +2460,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
+    latestAppVersionCode: 999,
     emailVerified: user.emailVerified === true,
     reliabilityMisses: Number(user.reliabilityMisses || 0),
     senderNoSelectionCount: Number(user.senderNoSelectionCount || 0),
