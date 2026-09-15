@@ -2460,7 +2460,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
-    latestAppVersionCode: 15,
+    latestAppVersionCode: 16,
     emailVerified: user.emailVerified === true,
     reliabilityMisses: Number(user.reliabilityMisses || 0),
     senderNoSelectionCount: Number(user.senderNoSelectionCount || 0),
@@ -4136,6 +4136,7 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
     res.json({
       shipmentId: shipment.id,
       shipmentStatus: shipment.status,
+      isSenderOwner: isSenderOwner,
       offersCount: bidHistory.length,
       lowestOffer,
       myOfferAmount: myOffer ? toNumber(myOffer.amount, null) : null,
