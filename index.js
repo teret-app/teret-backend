@@ -5,7 +5,9 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Stripe = require('stripe');
-
+const axios = require('axios');
+const INFOBIP_API_BASE_URL = process.env.INFOBIP_API_BASE_URL;
+const INFOBIP_API_KEY = process.env.INFOBIP_API_KEY;
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
@@ -83,6 +85,55 @@ const emailText = (hr, en) =>
   } catch (error) {
     console.error('GREŠKA SLANJA EMAILA:', error);
     throw error;
+  }
+}
+async function sendVerificationSms(phone, code) {
+  try {
+    if (!INFOBIP_API_BASE_URL || !INFOBIP_API_KEY) {
+      console.log('INFOBIP_API_BASE_URL ili INFOBIP_API_KEY nisu postavljeni.');
+      return false;
+    }
+
+    const normalizedPhone = normalizeString(phone)
+      .replace(/\s+/g, '')
+      .replace(/^\+/, '');
+
+    const response = await axios.post(
+      `${INFOBIP_API_BASE_URL}/sms/2/text/advanced`,
+      {
+        messages: [
+          {
+            destinations: [
+              {
+                to: normalizedPhone,
+              },
+            ],
+            text: `TeReT verification code: ${code}`,
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `App ${INFOBIP_API_KEY}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    console.log(
+      'SMS POSLAN:',
+      response.data
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      'GREŠKA SLANJA SMS-a:',
+      error.response?.data || error.message
+    );
+
+    return false;
   }
 }
 try {
@@ -1698,35 +1749,39 @@ app.post('/register', async (req, res) => {
       r1Oib,
       r1Address,
       r1PostalCode,
-      emailVerified: false,
-      verificationToken,
-      verifiedAt: null,
-      createdAt: nowIso(),
+     emailVerified: false,
+     verificationToken,
+     verifiedAt: null,
+
+     phoneVerified: false,
+     phoneVerificationCode: String(
+       Math.floor(100000 + Math.random() * 900000)
+     ),
+     phoneVerificationExpiresAt: new Date(
+       Date.now() + 10 * 60 * 1000
+     ).toISOString(),
+
+     createdAt: nowIso(),
     };
 
       users.push(newUser);
       writeJson(usersFile, users);
-
-      const language =
-        normalizeString(req.headers['accept-language'])
-          .toLowerCase()
-          .startsWith('en')
-            ? 'en'
-            : 'hr';
-
-      const verificationUrl =
-        `${APP_URL}/verify-email/${verificationToken}?lang=${language}`;
-await sendVerificationEmail(
-  email,
-  verificationUrl,
-  language,
+const smsSent = await sendVerificationSms(
+  newUser.phone,
+  newUser.phoneVerificationCode
 );
 
+if (!smsSent) {
+  console.error(
+    'SMS verifikacijski kod nije poslan korisniku:',
+    newUser.id
+  );
+}
 res.status(201).json({
   message: apiText(
     req,
-    'Registracija uspješna. Poslali smo vam email za potvrdu računa.',
-    'Registration successful. We have sent you a verification email.'
+    'Registracija uspješna. Poslali smo vam SMS kod za potvrdu broja telefona.',
+    'Registration successful. We sent you an SMS code to verify your phone number.'
   ),
 
   user: {
@@ -1736,7 +1791,7 @@ res.status(201).json({
     email: newUser.email,
     phone: newUser.phone,
     role: newUser.role,
-    emailVerified: newUser.emailVerified,
+    phoneVerified: newUser.phoneVerified,
   },
 });
    } catch (error) {
@@ -1840,7 +1895,103 @@ app.get('/verify-email/:token', (req, res) => {
   });
 }
 });
+app.post('/verify-phone', (req, res) => {
+  try {
+    const users = readJson(usersFile);
 
+    const email = normalizeString(req.body.email).toLowerCase();
+    const code = normalizeString(req.body.code);
+
+    if (!email || !code) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Email i SMS kod su obavezni.',
+          'Email and SMS code are required.'
+        ),
+      });
+    }
+
+    const user = users.find(
+      (u) => normalizeString(u.email).toLowerCase() === email
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: apiText(
+          req,
+          'Korisnik nije pronađen.',
+          'User not found.'
+        ),
+      });
+    }
+
+    if (user.phoneVerified === true) {
+      return res.json({
+        message: apiText(
+          req,
+          'Broj telefona je već potvrđen.',
+          'Phone number is already verified.'
+        ),
+      });
+    }
+
+    if (
+      !user.phoneVerificationCode ||
+      String(user.phoneVerificationCode) !== String(code)
+    ) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'Neispravan SMS kod.',
+          'Invalid SMS code.'
+        ),
+      });
+    }
+
+    const expiresAt = new Date(user.phoneVerificationExpiresAt);
+
+    if (
+      !user.phoneVerificationExpiresAt ||
+      Number.isNaN(expiresAt.getTime()) ||
+      expiresAt.getTime() < Date.now()
+    ) {
+      return res.status(400).json({
+        message: apiText(
+          req,
+          'SMS kod je istekao.',
+          'SMS code has expired.'
+        ),
+      });
+    }
+
+    user.phoneVerified = true;
+    user.phoneVerificationCode = null;
+    user.phoneVerificationExpiresAt = null;
+    user.phoneVerifiedAt = nowIso();
+
+    writeJson(usersFile, users);
+
+    return res.json({
+      message: apiText(
+        req,
+        'Broj telefona je uspješno potvrđen.',
+        'Phone number verified successfully.'
+      ),
+      phoneVerified: true,
+    });
+  } catch (error) {
+    console.error('Greška /verify-phone:', error);
+
+    return res.status(500).json({
+      message: apiText(
+        req,
+        'Greška na serveru.',
+        'Server error.'
+      ),
+    });
+  }
+});
 app.post('/resend-verification-email', async (req, res) => {
   try {
     const users = readJson(usersFile);
@@ -1993,15 +2144,19 @@ app.post('/login', async (req, res) => {
       });
     }
 
-    if (user.emailVerified !== true) {
-      return res.status(403).json({
-        message: apiText(
-          req,
-          'Račun nije potvrđen.',
-          'Account has not been verified.'
-        ),
-      });
-    }
+  const accountVerified =
+    user.phoneVerified === true ||
+    user.emailVerified === true;
+
+  if (!accountVerified) {
+    return res.status(403).json({
+      message: apiText(
+        req,
+        'Broj telefona nije potvrđen.',
+        'Phone number has not been verified.'
+      ),
+    });
+  }
 
     const token = createToken(user);
 
