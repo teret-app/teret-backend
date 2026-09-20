@@ -2200,7 +2200,7 @@ app.post('/forgot-password', async (req, res) => {
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
     req.ip ||
     'unknown';
-
+  console.log('FORGOT PASSWORD IP:', ip);
   const now = Date.now();
   const previousAttempts = passwordResetAttempts.get(ip) || [];
 
@@ -2615,7 +2615,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
-    latestAppVersionCode: 16,
+    latestAppVersionCode: 17,
     emailVerified: user.emailVerified === true,
     reliabilityMisses: Number(user.reliabilityMisses || 0),
     senderNoSelectionCount: Number(user.senderNoSelectionCount || 0),
