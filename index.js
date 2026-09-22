@@ -3754,7 +3754,18 @@ app.get(
               Number(offer.shipmentId) === Number(shipment.id) &&
               offer.status !== 'rejected'
           );
+const acceptedOffer = offers.find(
+  (offer) =>
+    Number(offer.shipmentId) === Number(shipment.id) &&
+    offer.status === 'accepted'
+);
 
+const acceptedCarrier = acceptedOffer
+  ? users.find(
+      (user) =>
+        Number(user.id) === Number(acceptedOffer.carrierId)
+    )
+  : null;
           return {
             id: shipment.id,
             senderId: shipment.senderId,
@@ -3779,6 +3790,21 @@ app.get(
             auctionEndsAt: shipment.licitacija_zavrsava_at,
 
             offersCount: getTotalBidCount(shipment, offers),
+            acceptedCarrierId: acceptedOffer?.carrierId || null,
+
+            acceptedCarrierName:
+              acceptedCarrier?.fullName ||
+              acceptedCarrier?.ime ||
+              acceptedCarrier?.companyName ||
+              acceptedCarrier?.naziv_tvrtke ||
+              '',
+
+            acceptedCarrierEmail: acceptedCarrier?.email || '',
+            acceptedCarrierPhone: acceptedCarrier?.phone || '',
+
+            commissionPaid:
+              acceptedOffer?.commissionPaid === true ||
+              shipment.commissionPaid === true,
           };
         })
         .sort(
