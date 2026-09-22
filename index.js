@@ -699,7 +699,15 @@ function authMiddleware(req, res, next) {
         ),
       });
     }
-
+if (user.isBlocked === true) {
+  return res.status(403).json({
+    message: apiText(
+      req,
+      'Vaš korisnički račun je blokiran.',
+      'Your user account has been blocked.'
+    ),
+  });
+}
     req.user = decoded;
     next();
   } catch (error) {
@@ -3563,6 +3571,162 @@ app.get(
           'Greška pri dohvaćanju administratorske statistike.',
           'Failed to load administrator statistics.'
         ),
+      });
+    }
+  }
+);
+app.get(
+  '/admin/users',
+  authMiddleware,
+  adminMiddleware,
+  (req, res) => {
+    try {
+      const users = readJson(usersFile);
+      const shipments = readJson(shipmentsFile);
+      const offers = readJson(offersFile);
+
+      const result = users.map((user) => {
+        const role = normalizeRole(user.role);
+
+        const userShipments = shipments.filter(
+          (shipment) =>
+            Number(shipment.senderId) === Number(user.id)
+        );
+
+        const userOffers = offers.filter(
+          (offer) =>
+            Number(offer.carrierId) === Number(user.id)
+        );
+
+        return {
+          id: user.id,
+
+          name:
+            user.fullName ||
+            user.ime ||
+            user.companyName ||
+            user.naziv_tvrtke ||
+            'Nepoznat korisnik',
+
+          email: user.email || '',
+          phone: user.phone || '',
+          role: role,
+
+          isAdmin: user.isAdmin === true,
+          isBlocked: user.isBlocked === true,
+
+          registeredAt:
+            user.createdAt ||
+            user.registeredAt ||
+            null,
+
+          shipmentsCount: userShipments.length,
+          offersCount: userOffers.length,
+        };
+      });
+
+      return res.json(result);
+    } catch (error) {
+      console.error('Greška GET /admin/users:', error);
+
+      return res.status(500).json({
+        message: 'Greška pri dohvaćanju korisnika.',
+      });
+    }
+  }
+);
+app.put(
+  '/admin/users/:id/block',
+  authMiddleware,
+  adminMiddleware,
+  (req, res) => {
+    try {
+      const users = readJson(usersFile);
+
+      const userId = Number(req.params.id);
+
+      const user = users.find(
+        (u) => Number(u.id) === userId
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          message: 'Korisnik nije pronađen.',
+        });
+      }
+
+      // Admin ne može blokirati sam sebe
+      if (Number(user.id) === Number(req.user.id)) {
+        return res.status(400).json({
+          message: 'Ne možete blokirati vlastiti administratorski račun.',
+        });
+      }
+
+      user.isBlocked = true;
+      user.blockedAt = new Date().toISOString();
+
+      writeJson(usersFile, users);
+
+      console.log(
+        `ADMIN BLOCK: admin ${req.user.id} blocked user ${user.id}`
+      );
+
+      return res.json({
+        success: true,
+        message: 'Korisnik je blokiran.',
+        userId: user.id,
+        isBlocked: true,
+      });
+    } catch (error) {
+      console.error('Greška PUT /admin/users/:id/block:', error);
+
+      return res.status(500).json({
+        message: 'Greška pri blokiranju korisnika.',
+      });
+    }
+  }
+);
+
+app.put(
+  '/admin/users/:id/unblock',
+  authMiddleware,
+  adminMiddleware,
+  (req, res) => {
+    try {
+      const users = readJson(usersFile);
+
+      const userId = Number(req.params.id);
+
+      const user = users.find(
+        (u) => Number(u.id) === userId
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          message: 'Korisnik nije pronađen.',
+        });
+      }
+
+      user.isBlocked = false;
+      user.unblockedAt = new Date().toISOString();
+
+      writeJson(usersFile, users);
+
+      console.log(
+        `ADMIN UNBLOCK: admin ${req.user.id} unblocked user ${user.id}`
+      );
+
+      return res.json({
+        success: true,
+        message: 'Korisnik je odblokiran.',
+        userId: user.id,
+        isBlocked: false,
+      });
+    } catch (error) {
+      console.error('Greška PUT /admin/users/:id/unblock:', error);
+
+      return res.status(500).json({
+        message: 'Greška pri odblokiranju korisnika.',
       });
     }
   }
