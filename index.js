@@ -3790,6 +3790,13 @@ const acceptedCarrier = acceptedOffer
             auctionEndsAt: shipment.licitacija_zavrsava_at,
 
             offersCount: getTotalBidCount(shipment, offers),
+            commissionAmount: acceptedOffer
+              ? (
+                  Number(acceptedOffer.amount) <= 100
+                    ? 5
+                    : Number(acceptedOffer.amount) * 0.07
+                )
+              : null,
             acceptedCarrierId: acceptedOffer?.carrierId || null,
 
             acceptedCarrierName:
