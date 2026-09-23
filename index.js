@@ -1207,22 +1207,22 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
     const isMyOffer = Number(offer.carrierId) === Number(viewer.id);
     const isSenderOwner =
       viewer.role === 'sender' && Number(shipment.senderId) === Number(viewer.id);
-
+    const isAdmin = viewer.isAdmin === true;
     history.forEach((historyItem, index) => {
       const isLastBid = index === history.length - 1;
 
       allBids.push({
         offerId: offer.id,
         shipmentId: offer.shipmentId,
-        carrierId: isSenderOwner || isMyOffer ? offer.carrierId : null,
+        carrierId: isSenderOwner || isMyOffer || isAdmin ? offer.carrierId : null,
        carrierName:
-         isSenderOwner || isMyOffer
+         isSenderOwner || isMyOffer || isAdmin
            ? carrier?.fullName || ''
            : viewer.language === 'en'
                ? 'Other carrier'
                : 'Drugi prijevoznik',
         carrierCompany:
-          isSenderOwner || isMyOffer
+          isSenderOwner || isMyOffer || isAdmin
             ? carrier?.companyName || ''
             : '',
         carrierAverageRating: carrierRating.averageRating,
@@ -4470,7 +4470,7 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
 
     const isCarrier = isCarrierRole(req.user.role);
 
-   if (!isSenderOwner && !isCarrier) {
+   if (!isSenderOwner && !isCarrier && req.user.isAdmin !== true) {
      return res.status(403).json({
        message: apiText(
          req,
@@ -5006,7 +5006,10 @@ app.get('/shipments/:id/offers', authMiddleware, (req, res) => {
       });
     }
 
-    if (Number(shipment.senderId) !== Number(req.user.id)) {
+    if (
+      Number(shipment.senderId) !== Number(req.user.id) &&
+      req.user.isAdmin !== true
+    ) {
       return res.status(403).json({
         message: apiText(
           req,
