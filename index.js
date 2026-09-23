@@ -1738,7 +1738,25 @@ app.post('/register', async (req, res) => {
         ),
       });
     }
+const normalizedPhone = phone.replace(/\D/g, '').replace(/^00/, '');
 
+const existingPhoneUser = users.find((u) => {
+  const savedPhone = normalizeString(u.phone)
+    .replace(/\D/g, '')
+    .replace(/^00/, '');
+
+  return savedPhone && savedPhone === normalizedPhone;
+});
+
+if (existingPhoneUser) {
+  return res.status(400).json({
+    message: apiText(
+      req,
+      'Korisnik s tim brojem telefona već postoji.',
+      'A user with this phone number already exists.'
+    ),
+  });
+}
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = generateVerificationToken();
 
