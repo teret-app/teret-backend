@@ -4469,8 +4469,12 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
       req.user.role === 'sender' && Number(shipment.senderId) === Number(req.user.id);
 
     const isCarrier = isCarrierRole(req.user.role);
+const currentUser = users.find(
+  (u) => Number(u.id) === Number(req.user.id)
+);
 
-   if (!isSenderOwner && !isCarrier && req.user.isAdmin !== true) {
+const isAdmin = currentUser?.isAdmin === true;
+   if (!isSenderOwner && !isCarrier && !isAdmin) {
      return res.status(403).json({
        message: apiText(
          req,
@@ -4484,7 +4488,7 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
       shipment,
       offers,
       users,
-      viewer: req.user,
+      viewer: currentUser || req.user,
       ratings,
     });
 
