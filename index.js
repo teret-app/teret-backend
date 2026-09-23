@@ -1577,9 +1577,12 @@ function cleanupUnverifiedUsers() {
     UNVERIFIED_ACCOUNT_RETENTION_HOURS * 60 * 60 * 1000;
 
   const filteredUsers = users.filter((user) => {
-    if (user.emailVerified === true) {
-      return true;
-    }
+   if (
+     user.emailVerified === true ||
+     user.phoneVerified === true
+   ) {
+     return true;
+   }
 
     const createdTime = new Date(user.createdAt || 0).getTime();
 
