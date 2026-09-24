@@ -1761,7 +1761,7 @@ if (existingPhoneUser) {
   });
 }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = generateVerificationToken();
+
 
     const newUser = {
       id: getNextId(users),
@@ -1778,9 +1778,7 @@ if (existingPhoneUser) {
       r1Oib,
       r1Address,
       r1PostalCode,
-     emailVerified: false,
-     verificationToken,
-     verifiedAt: null,
+
 
      phoneVerified: false,
      phoneVerificationCode: String(
@@ -1838,6 +1836,9 @@ res.status(201).json({
 
 app.get('/verify-email/:token', (req, res) => {
   try {
+      return res.status(410).send(
+        'Potvrda e-maila više se ne koristi. Potvrdite broj telefona SMS kodom.'
+      );
     const users = readJson(usersFile);
     const token = normalizeString(req.params.token);
 
@@ -2023,6 +2024,13 @@ app.post('/verify-phone', (req, res) => {
 });
 app.post('/resend-verification-email', async (req, res) => {
   try {
+      return res.status(410).json({
+        message: apiText(
+          req,
+          'Potvrda e-maila više se ne koristi. Potvrdite broj telefona SMS kodom.',
+          'Email verification is no longer used. Verify your phone number using the SMS code.'
+        ),
+      });
     const users = readJson(usersFile);
     const email = normalizeString(req.body.email).toLowerCase();
 
@@ -2173,9 +2181,12 @@ app.post('/login', async (req, res) => {
       });
     }
 
-  const accountVerified =
-    user.phoneVerified === true ||
-    user.emailVerified === true;
+const accountVerified =
+  user.phoneVerified === true ||
+  (
+    user.emailVerified === true &&
+    !user.phoneVerificationCode
+  );
 
   if (!accountVerified) {
     return res.status(403).json({
@@ -2203,8 +2214,8 @@ app.post('/login', async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        emailVerified:
-          user.emailVerified === true,
+       phoneVerified:
+         user.phoneVerified === true,
       },
     });
   } catch (error) {
