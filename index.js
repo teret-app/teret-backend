@@ -1215,16 +1215,8 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
         offerId: offer.id,
         shipmentId: offer.shipmentId,
         carrierId: isSenderOwner || isMyOffer || isAdmin ? offer.carrierId : null,
-       carrierName:
-         isSenderOwner || isMyOffer || isAdmin
-           ? carrier?.fullName || ''
-           : viewer.language === 'en'
-               ? 'Other carrier'
-               : 'Drugi prijevoznik',
-        carrierCompany:
-          isSenderOwner || isMyOffer || isAdmin
-            ? carrier?.companyName || ''
-            : '',
+    carrierName: carrier?.fullName || '',
+    carrierCompany: carrier?.companyName || '',
         carrierAverageRating: carrierRating.averageRating,
         carrierRatingsCount: carrierRating.ratingsCount,
         amount: toNumber(historyItem.amount, 0),
