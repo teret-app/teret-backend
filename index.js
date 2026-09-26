@@ -452,7 +452,7 @@ if (
     const calculatedCommission =
       acceptedAmount <= 100
         ? 5
-        : acceptedAmount * 0.07;
+        : acceptedAmount * 0.05;
 
     const commissionAmount = Math.round(calculatedCommission * 100);
 
@@ -3822,7 +3822,7 @@ const acceptedCarrier = acceptedOffer
               ? (
                   Number(acceptedOffer.amount) <= 100
                     ? 5
-                    : Number(acceptedOffer.amount) * 0.07
+                    : Number(acceptedOffer.amount) * 0.05
                 )
               : null,
             acceptedCarrierId: acceptedOffer?.carrierId || null,
@@ -4378,7 +4378,7 @@ const senderRating = senderUser
      acceptedPrice !== null
        ? acceptedPrice <= 100
          ? 5
-         : acceptedPrice * 0.07
+         : acceptedPrice * 0.05
        : null;
 
     res.json({
