@@ -2649,9 +2649,13 @@ app.get('/me', authMiddleware, (req, res) => {
     isAdmin: user.isAdmin === true,
     latestAppVersionCode: 17,
     emailVerified: user.emailVerified === true,
-    reliabilityMisses: Number(user.reliabilityMisses || 0),
-    senderNoSelectionCount: Number(user.senderNoSelectionCount || 0),
-    carrierNoPaymentCount: Number(user.carrierNoPaymentCount || 0),
+   ...(user.isAdmin === true
+     ? {
+         reliabilityMisses: Number(user.reliabilityMisses || 0),
+         senderNoSelectionCount: Number(user.senderNoSelectionCount || 0),
+         carrierNoPaymentCount: Number(user.carrierNoPaymentCount || 0),
+       }
+     : {}),
   });
 });
 
@@ -5510,6 +5514,8 @@ app.post('/ratings', authMiddleware, (req, res) => {
 
 app.get('/users/:id/ratings', authMiddleware, (req, res) => {
   try {
+    const requester = getUserById(req.user.id);
+    const isAdminRequester = requester?.isAdmin === true;
     const ratings = readJson(ratingsFile);
     const users = readJson(usersFile);
 
@@ -5533,9 +5539,13 @@ app.get('/users/:id/ratings', authMiddleware, (req, res) => {
     res.json({
       averageRating,
       ratingsCount: userRatings.length,
-      reliabilityMisses: Number(profileUser?.reliabilityMisses || 0),
-      senderNoSelectionCount: Number(profileUser?.senderNoSelectionCount || 0),
-      carrierNoPaymentCount: Number(profileUser?.carrierNoPaymentCount || 0),
+    ...(isAdminRequester
+      ? {
+          reliabilityMisses: Number(profileUser?.reliabilityMisses || 0),
+          senderNoSelectionCount: Number(profileUser?.senderNoSelectionCount || 0),
+          carrierNoPaymentCount: Number(profileUser?.carrierNoPaymentCount || 0),
+        }
+      : {}),
       ratings: userRatings,
     });
   } catch (error) {
