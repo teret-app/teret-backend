@@ -449,10 +449,7 @@ if (
 }
     const acceptedAmount = Number(acceptedOffer.amount);
 
-    const calculatedCommission =
-      acceptedAmount <= 100
-        ? 5
-        : acceptedAmount * 0.05;
+    const calculatedCommission = acceptedAmount * 0.05;
 
     const commissionAmount = Math.round(calculatedCommission * 100);
 
@@ -3818,13 +3815,7 @@ const acceptedCarrier = acceptedOffer
             auctionEndsAt: shipment.licitacija_zavrsava_at,
 
             offersCount: getTotalBidCount(shipment, offers),
-            commissionAmount: acceptedOffer
-              ? (
-                  Number(acceptedOffer.amount) <= 100
-                    ? 5
-                    : Number(acceptedOffer.amount) * 0.05
-                )
-              : null,
+            commissionAmount: acceptedOffer ? Number(acceptedOffer.amount) * 0.05 : null,
             acceptedCarrierId: acceptedOffer?.carrierId || null,
 
             acceptedCarrierName:
@@ -4374,12 +4365,7 @@ const senderRating = senderUser
       ? toNumber(acceptedOffer.amount, null)
       : null;
 
-   const provizijaIznos =
-     acceptedPrice !== null
-       ? acceptedPrice <= 100
-         ? 5
-         : acceptedPrice * 0.05
-       : null;
+   const provizijaIznos = acceptedPrice !== null ? acceptedPrice * 0.05 : null;
 
     res.json({
       ...sanitized,
@@ -5759,3 +5745,4 @@ setInterval(
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ TeReT backend radi na portu ${PORT}`);
 });
+
