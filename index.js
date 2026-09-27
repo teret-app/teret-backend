@@ -3096,11 +3096,13 @@ if (forbiddenTransportAdPattern.test(shipmentText)) {
     shipments.unshift(newShipment);
     writeJson(shipmentsFile, shipments);
 
-    await addNewShipmentNotifications({
-      users,
-      shipment: newShipment,
-      createdBy: req.user.id,
-    });
+   addNewShipmentNotifications({
+     users,
+     shipment: newShipment,
+     createdBy: req.user.id,
+   }).catch((error) => {
+     console.error('Greška pri slanju obavijesti za novi teret:', error);
+   });
 
     return res.status(201).json({
       message: apiText(
