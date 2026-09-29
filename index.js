@@ -2970,12 +2970,33 @@ if (forbiddenTransportAdPattern.test(shipmentText)) {
     }
 
     const createdAt = nowIso();
+const startingPriceRaw =
+  req.body.startingPrice ?? req.body.pocetna_cijena;
 
+const startingPrice =
+  startingPriceRaw === undefined ||
+  startingPriceRaw === null ||
+  String(startingPriceRaw).trim() === ''
+    ? null
+    : Number(String(startingPriceRaw).replace(',', '.'));
+
+if (
+  startingPrice !== null &&
+  (!Number.isFinite(startingPrice) || startingPrice <= 0)
+) {
+  return res.status(400).json({
+    message: apiText(
+      req,
+      'Početna cijena mora biti veća od 0.',
+      'The starting price must be greater than 0.'
+    ),
+  });
+}
     const newShipment = {
       id: shipmentId,
       senderId: Number(req.user.id),
       status: 'aktivan',
-
+      startingPrice,
       region: sender.region || 'Evropa',
 
       naziv_tereta: nazivTereta,
@@ -4716,8 +4737,47 @@ if (forbiddenContactPattern.test(offerMessage)) {
     );
 
     const numericAmount = toNumber(amount);
+const shipmentStartingPrice = toNumber(
+  shipment.startingPrice,
+  null
+);
 
+if (
+  shipmentStartingPrice !== null &&
+  numericAmount > shipmentStartingPrice
+) {
+  return res.status(400).json({
+    message: apiText(
+      req,
+      `Ponuda ne može biti veća od početne cijene ${shipmentStartingPrice} ${currency}.`,
+      `The offer cannot exceed the starting price of ${shipmentStartingPrice} ${currency}.`
+    ),
+  });
+}
     if (existingMyOffer) {
+    const otherActiveOffers = offers.filter(
+      (o) =>
+        Number(o.shipmentId) === Number(shipment.id) &&
+        Number(o.carrierId) !== Number(req.user.id) &&
+        o.status !== 'rejected' &&
+        o.status !== 'accepted'
+    );
+
+    if (otherActiveOffers.length > 0) {
+      const lowestOtherOffer = Math.min(
+        ...otherActiveOffers.map((o) => toNumber(o.amount))
+      );
+
+      if (numericAmount > lowestOtherOffer - 5) {
+        return res.status(400).json({
+          message: apiText(
+            req,
+            `Nova ponuda mora biti najmanje 5 ${currency} niža od trenutno najniže ponude.`,
+            `The new offer must be at least 5 ${currency} lower than the current lowest offer.`,
+          ),
+        });
+      }
+    }
       if (numericAmount > toNumber(existingMyOffer.amount)) {
           return res.status(400).json({
             message: apiText(
