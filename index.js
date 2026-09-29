@@ -4529,6 +4529,7 @@ const isAdmin = currentUser?.isAdmin === true;
     res.json({
       shipmentId: shipment.id,
       shipmentStatus: shipment.status,
+      startingPrice: toNumber(shipment.startingPrice, null),
       isSenderOwner: isSenderOwner,
       offersCount: bidHistory.length,
       lowestOffer,
