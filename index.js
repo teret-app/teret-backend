@@ -4745,6 +4745,7 @@ const shipmentStartingPrice = toNumber(
 
 if (
   shipmentStartingPrice !== null &&
+  shipmentStartingPrice > 0 &&
   numericAmount > shipmentStartingPrice
 ) {
   return res.status(400).json({
