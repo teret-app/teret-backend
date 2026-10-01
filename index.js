@@ -4654,8 +4654,12 @@ const offerMessage = normalizeString(
 
 const forbiddenContactPattern =
   /(\+?\d[\d\s\-\/().]{6,}\d)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(whatsapp|viber|telegram|signal|messenger|facebook|instagram|gmail|mail|email|e-mail|nazovi|zovi|javi se|kontaktiraj|kontakt|mobitel|telefon|broj)/i;
-
-if (forbiddenContactPattern.test(offerMessage)) {
+const numberWordsPattern =
+  /\b(nula|jedan|jedna|dva|dvije|tri|četiri|cetiri|pet|šest|sest|sedam|osam|devet|zero|one|two|three|four|five|six|seven|eight|nine)([\s,.\-]+(nula|jedan|jedna|dva|dvije|tri|četiri|cetiri|pet|šest|sest|sedam|osam|devet|zero|one|two|three|four|five|six|seven|eight|nine)){5,}\b/i;
+if (
+  forbiddenContactPattern.test(offerMessage) ||
+  numberWordsPattern.test(offerMessage)
+) {
   return res.status(400).json({
     message: apiText(
       req,
