@@ -451,7 +451,10 @@ if (
 
     const calculatedCommission = acceptedAmount * 0.05;
 
-    const commissionAmount = Math.round(calculatedCommission * 100);
+   const commissionAmount = Math.max(
+     500,
+     Math.round(calculatedCommission * 100)
+   );
 
     if (!Number.isFinite(commissionAmount) || commissionAmount <= 0) {
       return res.status(400).json({
