@@ -1486,11 +1486,11 @@ if (carrier) {
               'Payment deadline expired',
             );
 
-            const carrierMessage = t(
-              shipment.acceptedCarrierId,
-              'Niste platili naknadu za uslugu u roku od 24 sata. Prijevoz je otkazan.',
-              'You did not pay the service fee within 24 hours. The transport has been cancelled.',
-            );
+          const carrierMessage = t(
+            shipment.acceptedCarrierId,
+            'Niste platili naknadu za uslugu u roku od 24 sata. Prijevoz je otkazan i više ne možete slati ponude niti sudjelovati u novim licitacijama.',
+            'You did not pay the service fee within 24 hours. The transport has been cancelled and you can no longer submit offers or participate in new auctions.',
+          );
 
             addNotification({
               userId: shipment.acceptedCarrierId,
@@ -4648,6 +4648,23 @@ app.post('/offers', authMiddleware, (req, res) => {
 
     const offers = readJson(offersFile);
     const shipments = readJson(shipmentsFile);
+    const users = readJson(usersFile);
+    const currentCarrier = users.find(
+      (user) => Number(user.id) === Number(req.user.id)
+    );
+
+    if (
+      currentCarrier &&
+      Number(currentCarrier.carrierNoPaymentCount || 0) >= 1
+    ) {
+      return res.status(403).json({
+        message: apiText(
+          req,
+    'Ne možete slati nove ponude jer prethodno niste platili naknadu za uslugu. Vaš pristup budućim licitacijama je blokiran.',
+    'You cannot submit new offers because a previous service fee was not paid. Your access to future auctions has been blocked.'
+        ),
+      });
+    }
     const currency = req.body.currency || '€';
     const shipmentId = req.body.shipmentId || req.body.shipment_id;
     const amount = req.body.amount || req.body.price;
@@ -5251,8 +5268,9 @@ const acceptedNotificationTitle = t(
 
 const acceptedNotificationMessage = t(
   offer.carrierId,
-  'Vaša ponuda je prihvaćena. Za nastavak platite naknadu putem Stripe Checkouta kako biste otključali kontakt podatke.',
-  'Your offer has been accepted. Continue to Stripe Checkout and pay the fee to unlock the contact details.',
+
+  'Vaša ponuda je prihvaćena. Naknadu za uslugu morate platiti u roku od 24 sata putem Stripe Checkouta kako biste otključali kontakt podatke. Ako naknada ne bude plaćena u roku, nećete moći slati nove ponude niti sudjelovati u budućim licitacijama.',
+  'Your offer has been accepted. You must pay the service fee within 24 hours via Stripe Checkout to unlock the contact details. If the fee is not paid within the deadline, you will not be able to submit new offers or participate in future auctions.',
 );
     addNotification({
       userId: offer.carrierId,
