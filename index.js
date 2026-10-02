@@ -1,4 +1,4 @@
-
+﻿
 
 const express = require('express');
 const cors = require('cors');
@@ -44,7 +44,7 @@ async function sendVerificationEmail(
 const emailText = (hr, en) =>
   language === 'en' ? en : hr;
   try {
-    console.log('ŠALJEM EMAIL NA:', email);
+    console.log('Å ALJEM EMAIL NA:', email);
     console.log('APP_URL:', APP_URL);
 
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
@@ -62,18 +62,18 @@ const emailText = (hr, en) =>
      html: `
        <div style="font-family: Arial, sans-serif;">
          <h2>${emailText(
-           'Dobrodošli u TeReT',
+           'DobrodoÅ¡li u TeReT',
            'Welcome to TeReT'
          )}</h2>
 
          <p>${emailText(
-           'Kliknite za potvrdu računa:',
+           'Kliknite za potvrdu raÄuna:',
            'Click below to verify your account:'
          )}</p>
 
          <a href="${verificationUrl}">
            ${emailText(
-             'Potvrdi račun',
+             'Potvrdi raÄun',
              'Verify account'
            )}
          </a>
@@ -83,7 +83,7 @@ const emailText = (hr, en) =>
 
     console.log('EMAIL POSLAN:', result.messageId);
   } catch (error) {
-    console.error('GREŠKA SLANJA EMAILA:', error);
+    console.error('GREÅ KA SLANJA EMAILA:', error);
     throw error;
   }
 }
@@ -129,7 +129,7 @@ async function sendVerificationSms(phone, code) {
     return true;
   } catch (error) {
     console.error(
-      'GREŠKA SLANJA SMS-a:',
+      'GREÅ KA SLANJA SMS-a:',
       error.response?.data || error.message
     );
 
@@ -147,9 +147,9 @@ try {
 
   firebaseReady = true;
 
-  console.log('✅ Firebase Admin SDK initialized');
+  console.log('âœ… Firebase Admin SDK initialized');
 } catch (error) {
-  console.log('⚠️ Firebase init error:', error.message);
+  console.log('âš ï¸ Firebase init error:', error.message);
 }
 app.use(cors());
 app.post(
@@ -193,7 +193,7 @@ app.post(
       return res.status(400).send(
         `${apiText(
           req,
-          'Greška webhoka',
+          'GreÅ¡ka webhoka',
           'Webhook error'
         )}: ${error.message}`
       );
@@ -221,7 +221,7 @@ app.post(
         );
 
         if (!shipment || !offer) {
-          console.log('Stripe webhook: shipment ili offer nisu pronađeni.', {
+          console.log('Stripe webhook: shipment ili offer nisu pronaÄ‘eni.', {
             shipmentId,
             carrierId,
           });
@@ -244,7 +244,7 @@ if (
   commissionDeadline <= Date.now()
 ) {
   console.log(
-    'Stripe webhook: plaćanje je stiglo nakon isteka roka.',
+    'Stripe webhook: plaÄ‡anje je stiglo nakon isteka roka.',
     {
       shipmentId,
       carrierId,
@@ -281,13 +281,13 @@ if (
         writeJson(shipmentsFile, shipments);
 const carrierNotificationTitle = t(
   offer.carrierId,
-  'Kontakt je otključan',
+  'Kontakt je otkljuÄan',
   'Contact unlocked',
 );
 
 const carrierNotificationMessage = t(
   offer.carrierId,
-  'Sada možete pristupiti dogovoru.',
+  'Sada moÅ¾ete pristupiti dogovoru.',
   'You can now access the agreement details.',
 );
         addNotification({
@@ -311,7 +311,7 @@ const senderNotificationTitle = t(
 
 const senderNotificationMessage = t(
   shipment.senderId,
-  'Prihvaćeni prijevoznik sada vidi vaše podatke i može vas kontaktirati.',
+  'PrihvaÄ‡eni prijevoznik sada vidi vaÅ¡e podatke i moÅ¾e vas kontaktirati.',
   'The accepted carrier can now see your contact details and contact you.',
 );
         addNotification({
@@ -353,7 +353,7 @@ const senderNotificationMessage = t(
 
       res.json({ received: true });
     } catch (error) {
-      console.error('Stripe webhook obrada greška:', error);
+      console.error('Stripe webhook obrada greÅ¡ka:', error);
       res.status(500).send(
         apiText(
           req,
@@ -404,7 +404,7 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
         (
           o.status === 'accepted' ||
           o.status === 'prihvaceno' ||
-          o.status === 'prihvaćeno'
+          o.status === 'prihvaÄ‡eno'
         )
     );
 
@@ -412,7 +412,7 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Prihvaćena ponuda nije pronađena.',
+          'PrihvaÄ‡ena ponuda nije pronaÄ‘ena.',
           'The accepted offer was not found.'
         ),
       });
@@ -425,7 +425,7 @@ app.post('/create-checkout-session', authMiddleware, async (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Provizija je već plaćena i kontakt je već otključan.',
+          'Provizija je veÄ‡ plaÄ‡ena i kontakt je veÄ‡ otkljuÄan.',
           'The service fee has already been paid and the contact details are already unlocked.'
         ),
       });
@@ -442,7 +442,7 @@ if (
   return res.status(400).json({
     message: apiText(
       req,
-      'Istekao je rok od 24 sata za plaćanje naknade.',
+      'Istekao je rok od 24 sata za plaÄ‡anje naknade.',
       'The 24-hour service fee payment deadline has expired.'
     ),
   });
@@ -521,7 +521,7 @@ const language =
     res.status(500).json({
       message: apiText(
         req,
-        'Greška pri kreiranju Stripe naplate.',
+        'GreÅ¡ka pri kreiranju Stripe naplate.',
         'An error occurred while creating the Stripe payment.'
       ),
     });
@@ -572,7 +572,7 @@ function readJson(filePath) {
     const raw = fs.readFileSync(filePath, 'utf8');
     return raw ? JSON.parse(raw) : [];
   } catch (error) {
-    console.error(`Greška pri čitanju ${filePath}:`, error);
+    console.error(`GreÅ¡ka pri Äitanju ${filePath}:`, error);
     return [];
   }
 }
@@ -600,7 +600,7 @@ function isVisibleFinishedShipment(shipment) {
   const isCompleted =
     status === 'completed' ||
     status === 'zavrseno' ||
-    status === 'završeno';
+    status === 'zavrÅ¡eno';
 
   if (!isCompleted) return true;
 
@@ -694,7 +694,7 @@ function authMiddleware(req, res, next) {
       return res.status(401).json({
         message: apiText(
           req,
-          'Korisnik više ne postoji. Prijavite se ponovno.',
+          'Korisnik viÅ¡e ne postoji. Prijavite se ponovno.',
           'The user account no longer exists. Please sign in again.'
         ),
       });
@@ -703,7 +703,7 @@ if (user.isBlocked === true) {
   return res.status(403).json({
     message: apiText(
       req,
-      'Vaš korisnički račun je blokiran.',
+      'VaÅ¡ korisniÄki raÄun je blokiran.',
       'Your user account has been blocked.'
     ),
   });
@@ -875,7 +875,7 @@ async function sendPushNotificationToUser(
     console.log('PUSH USER:', userId);
 
     if (!user) {
-      console.log('USER NIJE PRONAĐEN');
+      console.log('USER NIJE PRONAÄEN');
       return;
     }
 
@@ -900,7 +900,7 @@ async function sendPushNotificationToUser(
       ),
     });
 
-    console.log('✅ Push poslan korisniku:', userId);
+    console.log('âœ… Push poslan korisniku:', userId);
   } catch (error) {
     console.log('FCM send error:', error);
   }
@@ -938,13 +938,13 @@ function addOutbidNotifications({ offers, shipment, currentCarrierId, currentOff
     notifiedCarrierIds.add(carrierId);
 const notificationTitle = t(
   carrierId,
-  'Ponuda više nije najniža',
+  'Ponuda viÅ¡e nije najniÅ¾a',
   'Your offer is no longer the lowest',
 );
 
 const notificationMessage = t(
   carrierId,
-  'Vaša ponuda više nije najniža. Pošaljite novu ponudu kako biste ostali konkurentni.',
+  'VaÅ¡a ponuda viÅ¡e nije najniÅ¾a. PoÅ¡aljite novu ponudu kako biste ostali konkurentni.',
   'Your offer is no longer the lowest. Submit a new offer to remain competitive.',
 );
     addNotification({
@@ -1002,8 +1002,8 @@ for (const carrier of carriers) {
 
    const notificationMessage = t(
      carrier.id,
-     `Objavljen je novi teret: ${shipment.mjesto_utovara} → ${shipment.mjesto_istovara}`,
-     `A new shipment has been posted: ${shipment.mjesto_utovara} → ${shipment.mjesto_istovara}`,
+     `Objavljen je novi teret: ${shipment.mjesto_utovara} â†’ ${shipment.mjesto_istovara}`,
+     `A new shipment has been posted: ${shipment.mjesto_utovara} â†’ ${shipment.mjesto_istovara}`,
    );
 
    addNotification({
@@ -1048,13 +1048,13 @@ function maskAddressKeepStreet(address) {
     ''
   );
 
-  // Ukloni sve što počinje oznakama za kontakt
+  // Ukloni sve Å¡to poÄinje oznakama za kontakt
   value = value.replace(
     /(Ansprechpartner|Kontakt|Contact|Telefon|Telephone|Phone|Mobitel|Mobile|E-mail|Email)\s*:?.*$/i,
     ''
   );
 
-  // Ukloni kućni broj ako se nalazi na kraju preostale adrese
+  // Ukloni kuÄ‡ni broj ako se nalazi na kraju preostale adrese
   value = value.replace(/\s+\d+[a-zA-Z/-]*\s*$/, '');
 
   return value.trim();
@@ -1098,7 +1098,7 @@ function canUserSeeFullContact({ shipment, viewer, offers }) {
   const acceptedOffer = offers.find(
     (o) =>
       Number(o.shipmentId) === Number(shipment.id) &&
-      (o.status === 'accepted' || o.status === 'prihvaceno' || o.status === 'prihvaćeno')
+      (o.status === 'accepted' || o.status === 'prihvaceno' || o.status === 'prihvaÄ‡eno')
   );
 
   if (!acceptedOffer) return false;
@@ -1301,7 +1301,7 @@ function cleanupExpiredShipments() {
 
     if (!Number.isFinite(auctionEnd)) return;
 
-    // Licitacija je završila
+    // Licitacija je zavrÅ¡ila
     if (
       shipment.status === 'aktivan' &&
       auctionEnd <= now
@@ -1325,7 +1325,7 @@ function cleanupExpiredShipments() {
       if (shipmentOffers.length > 0) {
         const notificationTitle = t(
           shipment.senderId,
-          'Licitacija je završena',
+          'Licitacija je zavrÅ¡ena',
           'Auction ended'
         );
 
@@ -1361,7 +1361,7 @@ function cleanupExpiredShipments() {
       }
     }
 
-    // Naručitelj nije odabrao prijevoznika u roku 24 sata
+    // NaruÄitelj nije odabrao prijevoznika u roku 24 sata
     if (
       shipment.status === 'licitacija_zavrsena' &&
       shipment.selectionDeadlineAt
@@ -1384,7 +1384,7 @@ function cleanupExpiredShipments() {
         shipment.updatedAt = nowIso();
         shipmentsChanged = true;
 
-        // Propust se bilježi samo ako je bilo ponuda
+        // Propust se biljeÅ¾i samo ako je bilo ponuda
         if (shipmentOffers.length > 0) {
           const sender = users.find(
             (user) =>
@@ -1410,7 +1410,7 @@ function cleanupExpiredShipments() {
 
           const notificationMessage = t(
             shipment.senderId,
-            'Niste odabrali prijevoznika u roku od 24 sata. Propust je evidentiran u pouzdanosti računa.',
+            'Niste odabrali prijevoznika u roku od 24 sata. Propust je evidentiran u pouzdanosti raÄuna.',
             'You did not select a carrier within 24 hours. This has been recorded in your account reliability.'
           );
 
@@ -1453,7 +1453,7 @@ function cleanupExpiredShipments() {
                 Number(offer.id) === Number(shipment.acceptedOfferId)
             );
 
-            // Prihvaćenu ponudu odbijamo jer provizija nije plaćena
+            // PrihvaÄ‡enu ponudu odbijamo jer provizija nije plaÄ‡ena
             if (acceptedOffer) {
               acceptedOffer.status = 'rejected';
               acceptedOffer.updatedAt = nowIso();
@@ -1482,7 +1482,7 @@ if (carrier) {
 
             const carrierTitle = t(
               shipment.acceptedCarrierId,
-              'Rok za plaćanje je istekao',
+              'Rok za plaÄ‡anje je istekao',
               'Payment deadline expired',
             );
 
@@ -1493,12 +1493,12 @@ if (carrier) {
          carrierNoPaymentCount >= 2
            ? t(
                shipment.acceptedCarrierId,
-               'Niste platili naknadu za uslugu u roku od 24 sata. Ovo je drugo evidentirano neplaćanje. Blokirani ste za slanje novih ponuda i sudjelovanje u budućim licitacijama.',
+               'Niste platili naknadu za uslugu u roku od 24 sata. Ovo je drugo evidentirano neplaÄ‡anje. Blokirani ste za slanje novih ponuda i sudjelovanje u buduÄ‡im licitacijama.',
                'You did not pay the service fee within 24 hours. This is your second recorded non-payment. You are now blocked from submitting new offers and participating in future auctions.',
              )
            : t(
                shipment.acceptedCarrierId,
-               'Niste platili naknadu za uslugu u roku od 24 sata. Ovo je prvo evidentirano neplaćanje. Ako se neplaćanje ponovi, bit ćete blokirani za slanje novih ponuda i sudjelovanje u budućim licitacijama.',
+               'Niste platili naknadu za uslugu u roku od 24 sata. Ovo je prvo evidentirano neplaÄ‡anje. Ako se neplaÄ‡anje ponovi, bit Ä‡ete blokirani za slanje novih ponuda i sudjelovanje u buduÄ‡im licitacijama.',
                'You did not pay the service fee within 24 hours. This is your first recorded non-payment. If it happens again, you will be blocked from submitting new offers and participating in future auctions.',
              );
 
@@ -1523,7 +1523,7 @@ if (carrier) {
 
             const senderTitle = t(
               shipment.senderId,
-              'Prijevoz nije potvrđen',
+              'Prijevoz nije potvrÄ‘en',
               'Transport not confirmed',
             );
 
@@ -1601,7 +1601,7 @@ function cleanupUnverifiedUsers() {
     console.log(
       `Cleanup: obrisano ${
         users.length - filteredUsers.length
-      } nepotvrđenih računa.`
+      } nepotvrÄ‘enih raÄuna.`
     );
   }
 }
@@ -1631,7 +1631,7 @@ const pageText = (hr, en) =>
       <head>
         <meta charset="UTF-8">
         <title>${pageText(
-          'Plaćanje uspješno',
+          'PlaÄ‡anje uspjeÅ¡no',
           'Payment successful'
         )}</title>
 
@@ -1647,12 +1647,12 @@ const pageText = (hr, en) =>
       </head>
 
       <body style="font-family:Arial;text-align:center;padding:40px;">
-        <h2>✅ ${pageText(
-          'Plaćanje uspješno',
+        <h2>âœ… ${pageText(
+          'PlaÄ‡anje uspjeÅ¡no',
           'Payment successful'
         )}</h2>
         <p>${pageText(
-          'Vraćamo vas u aplikaciju TeReT...',
+          'VraÄ‡amo vas u aplikaciju TeReT...',
           'Returning you to the TeReT app...'
         )}</p>
 
@@ -1738,7 +1738,7 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Korisnik s tim emailom već postoji.',
+          'Korisnik s tim emailom veÄ‡ postoji.',
           'A user with this email already exists.'
         ),
       });
@@ -1757,7 +1757,7 @@ if (existingPhoneUser) {
   return res.status(400).json({
     message: apiText(
       req,
-      'Korisnik s tim brojem telefona već postoji.',
+      'Korisnik s tim brojem telefona veÄ‡ postoji.',
       'A user with this phone number already exists.'
     ),
   });
@@ -1809,7 +1809,7 @@ if (!smsSent) {
 res.status(201).json({
   message: apiText(
     req,
-    'Registracija uspješna. Poslali smo vam SMS kod za potvrdu broja telefona.',
+    'Registracija uspjeÅ¡na. Poslali smo vam SMS kod za potvrdu broja telefona.',
     'Registration successful. We sent you an SMS code to verify your phone number.'
   ),
 
@@ -1824,12 +1824,12 @@ res.status(201).json({
   },
 });
    } catch (error) {
-     console.error('Greška /register:', error);
+     console.error('GreÅ¡ka /register:', error);
 
      res.status(500).json({
        message: apiText(
          req,
-         'Greška na serveru.',
+         'GreÅ¡ka na serveru.',
          'Server error.'
        ),
      });
@@ -1839,7 +1839,7 @@ res.status(201).json({
 app.get('/verify-email/:token', (req, res) => {
   try {
       return res.status(410).send(
-        'Potvrda e-maila više se ne koristi. Potvrdite broj telefona SMS kodom.'
+        'Potvrda e-maila viÅ¡e se ne koristi. Potvrdite broj telefona SMS kodom.'
       );
     const users = readJson(usersFile);
     const token = normalizeString(req.params.token);
@@ -1882,7 +1882,7 @@ app.get('/verify-email/:token', (req, res) => {
        />
 
        <title>${pageText(
-         'TeReT - račun potvrđen',
+         'TeReT - raÄun potvrÄ‘en',
          'TeReT - Account verified'
        )}</title>
      </head>
@@ -1892,21 +1892,21 @@ app.get('/verify-email/:token', (req, res) => {
 
          <h2 style="color:#2e7d32;">
            ${pageText(
-             'Račun je potvrđen',
+             'RaÄun je potvrÄ‘en',
              'Account verified'
            )}
          </h2>
 
          <p>
            ${pageText(
-             'Vaša email adresa je uspješno potvrđena.',
+             'VaÅ¡a email adresa je uspjeÅ¡no potvrÄ‘ena.',
              'Your email address has been successfully verified.'
            )}
          </p>
 
          <p>
            ${pageText(
-             'Sada se možete prijaviti u aplikaciju TeReT.',
+             'Sada se moÅ¾ete prijaviti u aplikaciju TeReT.',
              'You can now sign in to the TeReT app.'
            )}
          </p>
@@ -1916,12 +1916,12 @@ app.get('/verify-email/:token', (req, res) => {
    `);
 
 } catch (error) {
-  console.error('Greška /verify-email:', error);
+  console.error('GreÅ¡ka /verify-email:', error);
 
   res.status(500).json({
     message: apiText(
       req,
-      'Greška na serveru.',
+      'GreÅ¡ka na serveru.',
       'Server error.'
     ),
   });
@@ -1952,7 +1952,7 @@ app.post('/verify-phone', (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Korisnik nije pronađen.',
+          'Korisnik nije pronaÄ‘en.',
           'User not found.'
         ),
       });
@@ -1962,7 +1962,7 @@ app.post('/verify-phone', (req, res) => {
       return res.json({
         message: apiText(
           req,
-          'Broj telefona je već potvrđen.',
+          'Broj telefona je veÄ‡ potvrÄ‘en.',
           'Phone number is already verified.'
         ),
       });
@@ -2007,18 +2007,18 @@ app.post('/verify-phone', (req, res) => {
     return res.json({
       message: apiText(
         req,
-        'Broj telefona je uspješno potvrđen.',
+        'Broj telefona je uspjeÅ¡no potvrÄ‘en.',
         'Phone number verified successfully.'
       ),
       phoneVerified: true,
     });
   } catch (error) {
-    console.error('Greška /verify-phone:', error);
+    console.error('GreÅ¡ka /verify-phone:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -2029,7 +2029,7 @@ app.post('/resend-verification-email', async (req, res) => {
       return res.status(410).json({
         message: apiText(
           req,
-          'Potvrda e-maila više se ne koristi. Potvrdite broj telefona SMS kodom.',
+          'Potvrda e-maila viÅ¡e se ne koristi. Potvrdite broj telefona SMS kodom.',
           'Email verification is no longer used. Verify your phone number using the SMS code.'
         ),
       });
@@ -2055,7 +2055,7 @@ app.post('/resend-verification-email', async (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Korisnik s tom email adresom nije pronađen.',
+          'Korisnik s tom email adresom nije pronaÄ‘en.',
           'A user with that email address was not found.'
         ),
       });
@@ -2065,7 +2065,7 @@ app.post('/resend-verification-email', async (req, res) => {
       return res.json({
         message: apiText(
           req,
-          'Račun je već potvrđen. Možete se prijaviti.',
+          'RaÄun je veÄ‡ potvrÄ‘en. MoÅ¾ete se prijaviti.',
           'The account is already verified. You can sign in.'
         ),
       });
@@ -2103,14 +2103,14 @@ app.post('/resend-verification-email', async (req, res) => {
     });
   } catch (error) {
     console.error(
-      'Greška /resend-verification-email:',
+      'GreÅ¡ka /resend-verification-email:',
       error
     );
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -2157,14 +2157,14 @@ app.post('/login', async (req, res) => {
         email
     );
 
-    console.log('LOGIN TRAŽI EMAIL:', email);
-    console.log('LOGIN USER PRONAĐEN:', !!user);
+    console.log('LOGIN TRAÅ½I EMAIL:', email);
+    console.log('LOGIN USER PRONAÄEN:', !!user);
 
     if (!user) {
       return res.status(401).json({
         message: apiText(
           req,
-          'Pogrešan email ili lozinka.',
+          'PogreÅ¡an email ili lozinka.',
           'Invalid email or password.'
         ),
       });
@@ -2177,7 +2177,7 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({
         message: apiText(
           req,
-          'Pogrešan email ili lozinka.',
+          'PogreÅ¡an email ili lozinka.',
           'Invalid email or password.'
         ),
       });
@@ -2194,7 +2194,7 @@ const accountVerified =
     return res.status(403).json({
       message: apiText(
         req,
-        'Broj telefona nije potvrđen.',
+        'Broj telefona nije potvrÄ‘en.',
         'Phone number has not been verified.'
       ),
     });
@@ -2205,7 +2205,7 @@ const accountVerified =
     return res.json({
       message: apiText(
         req,
-        'Prijava uspješna.',
+        'Prijava uspjeÅ¡na.',
         'Login successful.'
       ),
       token,
@@ -2221,12 +2221,12 @@ const accountVerified =
       },
     });
   } catch (error) {
-    console.error('Greška /login:', error);
+    console.error('GreÅ¡ka /login:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -2254,7 +2254,7 @@ app.post('/forgot-password', async (req, res) => {
     return res.status(429).json({
       message: apiText(
         req,
-        'Previše zahtjeva za promjenu lozinke. Pokušajte ponovno za 15 minuta.',
+        'PreviÅ¡e zahtjeva za promjenu lozinke. PokuÅ¡ajte ponovno za 15 minuta.',
         'Too many password reset requests. Please try again in 15 minutes.'
       ),
     });
@@ -2271,7 +2271,7 @@ app.post('/forgot-password', async (req, res) => {
 
     const genericMessage = apiText(
       req,
-      'Ako račun s tim e-mailom postoji, poslana je poveznica za promjenu lozinke.',
+      'Ako raÄun s tim e-mailom postoji, poslana je poveznica za promjenu lozinke.',
       'If an account with that email exists, a password reset link has been sent.'
     );
 
@@ -2317,8 +2317,8 @@ user.resetPasswordRequestedAt = Date.now();
       to: user.email,
      subject: apiText(
        req,
-       'TeReT – promjena lozinke',
-       'TeReT – Password reset',
+       'TeReT â€“ promjena lozinke',
+       'TeReT â€“ Password reset',
      ),
      html: `
        <p>${
@@ -2352,7 +2352,7 @@ user.resetPasswordRequestedAt = Date.now();
        <p>${
          apiText(
            req,
-           'Ako niste tražili promjenu lozinke, zanemarite ovu poruku.',
+           'Ako niste traÅ¾ili promjenu lozinke, zanemarite ovu poruku.',
            'If you did not request a password reset, please ignore this email.',
          )
        }</p>
@@ -2364,12 +2364,12 @@ user.resetPasswordRequestedAt = Date.now();
       message: genericMessage,
     });
   } catch (error) {
-    console.error('Greška /forgot-password:', error);
+    console.error('GreÅ¡ka /forgot-password:', error);
 
    return res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -2469,7 +2469,7 @@ const pageText = (hr, en) =>
               user-select:none;
               font-size:20px;
             "
-          >👁️</span>
+          >ðŸ‘ï¸</span>
         </div>
 
         <label>${pageText(
@@ -2496,7 +2496,7 @@ const pageText = (hr, en) =>
               user-select:none;
               font-size:20px;
             "
-          >👁️</span>
+          >ðŸ‘ï¸</span>
         </div>
 
         <button type="submit">
@@ -2513,10 +2513,10 @@ const pageText = (hr, en) =>
 
         if (input.type === 'password') {
           input.type = 'text';
-          icon.textContent = '🙈';
+          icon.textContent = 'ðŸ™ˆ';
         } else {
           input.type = 'password';
-          icon.textContent = '👁️';
+          icon.textContent = 'ðŸ‘ï¸';
         }
       }
       </script>
@@ -2583,7 +2583,7 @@ app.post('/reset-password', async (req, res) => {
         )}</h3>
 
         <p>${pageText(
-          'Ponovno zatražite promjenu lozinke u aplikaciji TeReT.',
+          'Ponovno zatraÅ¾ite promjenu lozinke u aplikaciji TeReT.',
           'Request another password reset in the TeReT app.'
         )}</p>
       `);
@@ -2614,23 +2614,23 @@ app.post('/reset-password', async (req, res) => {
 
      <body style="font-family: Arial; padding: 30px; text-align: center;">
        <h2>${pageText(
-         'Lozinka je uspješno promijenjena.',
+         'Lozinka je uspjeÅ¡no promijenjena.',
          'Your password has been changed successfully.'
        )}</h2>
 
        <p>${pageText(
-         'Sada se možete vratiti u aplikaciju TeReT i prijaviti novom lozinkom.',
+         'Sada se moÅ¾ete vratiti u aplikaciju TeReT i prijaviti novom lozinkom.',
          'You can now return to the TeReT app and sign in with your new password.'
        )}</p>
      </body>
      </html>
    `);
   } catch (error) {
-    console.error('Greška POST /reset-password:', error);
+    console.error('GreÅ¡ka POST /reset-password:', error);
 
     return res.status(500).send(`
       <h3>${pageText(
-        'Greška na serveru. Pokušajte ponovno.',
+        'GreÅ¡ka na serveru. PokuÅ¡ajte ponovno.',
         'Server error. Please try again.'
       )}</h3>
     `);
@@ -2643,7 +2643,7 @@ app.get('/me', authMiddleware, (req, res) => {
     return res.status(404).json({
       message: apiText(
         req,
-        'Korisnik nije pronađen.',
+        'Korisnik nije pronaÄ‘en.',
         'User not found.'
       ),
     });
@@ -2657,7 +2657,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
-    latestAppVersionCode: 22,
+    latestAppVersionCode: 23,
     emailVerified: user.emailVerified === true,
    ...(user.isAdmin === true
      ? {
@@ -2695,7 +2695,7 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Korisnik nije pronađen.',
+          'Korisnik nije pronaÄ‘en.',
           'User not found.'
         ),
       });
@@ -2723,12 +2723,12 @@ app.post('/fcm-token', authMiddleware, (req, res) => {
       language: user.language,
     });
   } catch (error) {
-    console.error('Greška /fcm-token:', error);
+    console.error('GreÅ¡ka /fcm-token:', error);
 
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -2742,7 +2742,7 @@ app.post('/shipments', authMiddleware, async (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-          'Samo naručitelj može objaviti teret.',
+          'Samo naruÄitelj moÅ¾e objaviti teret.',
           'Only the sender can publish a shipment.'
         ),
       });
@@ -2759,7 +2759,7 @@ app.post('/shipments', authMiddleware, async (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Korisnik nije pronađen.',
+          'Korisnik nije pronaÄ‘en.',
           'User not found.'
         ),
       });
@@ -2886,13 +2886,13 @@ const shipmentText =
   `${nazivTereta} ${opisTereta}`.toLowerCase();
 
 const forbiddenTransportAdPattern =
-  /\b(nudim\s+(prijevoz|transport|transporte)|nudimo\s+(prijevoz|transport|transporte)|tražim\s+teret|trazim\s+teret|tražimo\s+teret|trazimo\s+teret|slobodan\s+(kombi|kamion|šleper|sleper)|slobodno\s+vozilo|povratna\s+tura|offering\s+transport|transport\s+available|available\s+(truck|van|vehicle)|looking\s+for\s+(load|cargo|freight))\b/i;
+  /\b(nudim\s+(prijevoz|transport|transporte)|nudimo\s+(prijevoz|transport|transporte)|traÅ¾im\s+teret|trazim\s+teret|traÅ¾imo\s+teret|trazimo\s+teret|slobodan\s+(kombi|kamion|Å¡leper|sleper)|slobodno\s+vozilo|povratna\s+tura|offering\s+transport|transport\s+available|available\s+(truck|van|vehicle)|looking\s+for\s+(load|cargo|freight))\b/i;
 
 if (forbiddenTransportAdPattern.test(shipmentText)) {
   return res.status(400).json({
     message: apiText(
       req,
-      'Ovdje se može objaviti samo konkretan teret za prijevoz. Oglasi za nuđenje prijevoza ili traženje tereta nisu dopušteni.',
+      'Ovdje se moÅ¾e objaviti samo konkretan teret za prijevoz. Oglasi za nuÄ‘enje prijevoza ili traÅ¾enje tereta nisu dopuÅ¡teni.',
       'Only specific shipments requiring transport can be posted here. Ads offering transport or looking for cargo are not allowed.'
     ),
   });
@@ -2969,14 +2969,14 @@ if (forbiddenTransportAdPattern.test(shipmentText)) {
       );
     } catch (imageError) {
       console.error(
-        'Greška spremanja slika tereta:',
+        'GreÅ¡ka spremanja slika tereta:',
         imageError
       );
 
       return res.status(400).json({
         message: apiText(
           req,
-          'Slike tereta nije moguće spremiti.',
+          'Slike tereta nije moguÄ‡e spremiti.',
           'The shipment images could not be saved.'
         ),
       });
@@ -3114,24 +3114,24 @@ if (forbiddenTransportAdPattern.test(shipmentText)) {
      shipment: newShipment,
      createdBy: req.user.id,
    }).catch((error) => {
-     console.error('Greška pri slanju obavijesti za novi teret:', error);
+     console.error('GreÅ¡ka pri slanju obavijesti za novi teret:', error);
    });
 
     return res.status(201).json({
       message: apiText(
         req,
-        'Teret je uspješno objavljen.',
+        'Teret je uspjeÅ¡no objavljen.',
         'The shipment was published successfully.'
       ),
       shipment: newShipment,
     });
   } catch (error) {
-    console.error('Greška /shipments POST:', error);
+    console.error('GreÅ¡ka /shipments POST:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -3143,7 +3143,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-          'Samo naručitelj može uređivati objavu.',
+          'Samo naruÄitelj moÅ¾e ureÄ‘ivati objavu.',
           'Only the sender can edit a shipment listing.'
         ),
       });
@@ -3161,7 +3161,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Prijevoznik nije pronađen.',
+          'Prijevoznik nije pronaÄ‘en.',
           'Carrier not found.'
         ),
       });
@@ -3175,7 +3175,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Teret nije pronađen.',
+          'Teret nije pronaÄ‘en.',
           'Shipment not found.'
         ),
       });
@@ -3185,7 +3185,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-          'Nemate pravo uređivati ovaj teret.',
+          'Nemate pravo ureÄ‘ivati ovaj teret.',
           'You are not allowed to edit this shipment.'
         ),
       });
@@ -3195,7 +3195,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Objavu je moguće uređivati samo dok je aktivna.',
+          'Objavu je moguÄ‡e ureÄ‘ivati samo dok je aktivna.',
           'The listing can only be edited while it is active.'
         ),
       });
@@ -3207,7 +3207,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
         (
           o.status === 'accepted' ||
           o.status === 'prihvaceno' ||
-          o.status === 'prihvaćeno'
+          o.status === 'prihvaÄ‡eno'
         )
     );
 
@@ -3215,7 +3215,7 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Objavu nije moguće uređivati nakon prihvaćanja ponude.',
+          'Objavu nije moguÄ‡e ureÄ‘ivati nakon prihvaÄ‡anja ponude.',
           'The listing cannot be edited after an offer has been accepted.'
         ),
       });
@@ -3244,18 +3244,18 @@ app.put('/shipments/:id', authMiddleware, (req, res) => {
     res.json({
       message: apiText(
         req,
-        'Objava je uspješno ažurirana.',
+        'Objava je uspjeÅ¡no aÅ¾urirana.',
         'The listing has been updated successfully.'
       ),
       shipment,
     });
   } catch (error) {
-    console.error('Greška PUT /shipments/:id:', error);
+    console.error('GreÅ¡ka PUT /shipments/:id:', error);
 
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -3315,7 +3315,7 @@ app.get('/shipments', authMiddleware, (req, res) => {
           Number(offer.carrierId) === userId &&
           (offer.status === 'accepted' ||
             offer.status === 'prihvaceno' ||
-            offer.status === 'prihvaćeno')
+            offer.status === 'prihvaÄ‡eno')
       );
 
       return !!acceptedOffer;
@@ -3340,7 +3340,7 @@ app.get('/shipments', authMiddleware, (req, res) => {
         (offer) =>
           offer.status === 'accepted' ||
           offer.status === 'prihvaceno' ||
-          offer.status === 'prihvaćeno'
+          offer.status === 'prihvaÄ‡eno'
       );
 const senderUser = usersById.get(Number(shipment.senderId));
 
@@ -3412,12 +3412,12 @@ const senderRating = getUserRatingSummary(
            ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
              ? apiText(
                  req,
-                 'Najniža',
+                 'NajniÅ¾a',
                  'Lowest'
                )
              : apiText(
                  req,
-                 'Nadmašena',
+                 'NadmaÅ¡ena',
                  'Outbid'
                )
            : null,
@@ -3458,12 +3458,12 @@ result.sort((a, b) => {
 });
     res.json(result);
  } catch (error) {
-   console.error('Greška /shipments GET:', error);
+   console.error('GreÅ¡ka /shipments GET:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -3476,7 +3476,7 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-          'Samo naručitelj može vidjeti svoje objave.',
+          'Samo naruÄitelj moÅ¾e vidjeti svoje objave.',
           'Only the sender can view their shipment listings.'
         ),
       });
@@ -3532,12 +3532,12 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
 
     res.json(myShipments);
 } catch (error) {
-  console.error('Greška /my-shipments:', error);
+  console.error('GreÅ¡ka /my-shipments:', error);
 
   res.status(500).json({
     message: apiText(
       req,
-      'Greška na serveru.',
+      'GreÅ¡ka na serveru.',
       'Server error.'
     ),
   });
@@ -3570,7 +3570,7 @@ app.get(
       const acceptedShipments = shipments.filter(
         (shipment) =>
           shipment.status === 'prihvaceno' ||
-          shipment.status === 'prihvaćeno' ||
+          shipment.status === 'prihvaÄ‡eno' ||
           shipment.status === 'accepted'
       ).length;
 
@@ -3578,14 +3578,14 @@ app.get(
         (shipment) =>
           shipment.status === 'completed' ||
           shipment.status === 'zavrseno' ||
-          shipment.status === 'završeno'
+          shipment.status === 'zavrÅ¡eno'
       ).length;
 
       const unpaidCommissions = shipments.filter(
         (shipment) =>
           (
             shipment.status === 'prihvaceno' ||
-            shipment.status === 'prihvaćeno' ||
+            shipment.status === 'prihvaÄ‡eno' ||
             shipment.status === 'accepted'
           ) &&
           shipment.commissionPaid !== true
@@ -3603,12 +3603,12 @@ app.get(
         unpaidCommissions,
       });
     } catch (error) {
-      console.error('Greška GET /admin/stats:', error);
+      console.error('GreÅ¡ka GET /admin/stats:', error);
 
       return res.status(500).json({
         message: apiText(
           req,
-          'Greška pri dohvaćanju administratorske statistike.',
+          'GreÅ¡ka pri dohvaÄ‡anju administratorske statistike.',
           'Failed to load administrator statistics.'
         ),
       });
@@ -3667,10 +3667,10 @@ app.get(
 
       return res.json(result);
     } catch (error) {
-      console.error('Greška GET /admin/users:', error);
+      console.error('GreÅ¡ka GET /admin/users:', error);
 
       return res.status(500).json({
-        message: 'Greška pri dohvaćanju korisnika.',
+        message: 'GreÅ¡ka pri dohvaÄ‡anju korisnika.',
       });
     }
   }
@@ -3691,14 +3691,14 @@ app.put(
 
       if (!user) {
         return res.status(404).json({
-          message: 'Korisnik nije pronađen.',
+          message: 'Korisnik nije pronaÄ‘en.',
         });
       }
 
-      // Admin ne može blokirati sam sebe
+      // Admin ne moÅ¾e blokirati sam sebe
       if (Number(user.id) === Number(req.user.id)) {
         return res.status(400).json({
-          message: 'Ne možete blokirati vlastiti administratorski račun.',
+          message: 'Ne moÅ¾ete blokirati vlastiti administratorski raÄun.',
         });
       }
 
@@ -3718,10 +3718,10 @@ app.put(
         isBlocked: true,
       });
     } catch (error) {
-      console.error('Greška PUT /admin/users/:id/block:', error);
+      console.error('GreÅ¡ka PUT /admin/users/:id/block:', error);
 
       return res.status(500).json({
-        message: 'Greška pri blokiranju korisnika.',
+        message: 'GreÅ¡ka pri blokiranju korisnika.',
       });
     }
   }
@@ -3743,7 +3743,7 @@ app.put(
 
       if (!user) {
         return res.status(404).json({
-          message: 'Korisnik nije pronađen.',
+          message: 'Korisnik nije pronaÄ‘en.',
         });
       }
 
@@ -3763,10 +3763,10 @@ app.put(
         isBlocked: false,
       });
     } catch (error) {
-      console.error('Greška PUT /admin/users/:id/unblock:', error);
+      console.error('GreÅ¡ka PUT /admin/users/:id/unblock:', error);
 
       return res.status(500).json({
-        message: 'Greška pri odblokiranju korisnika.',
+        message: 'GreÅ¡ka pri odblokiranju korisnika.',
       });
     }
   }
@@ -3856,12 +3856,12 @@ const acceptedCarrier = acceptedOffer
 
       return res.json(result);
     } catch (error) {
-      console.error('Greška GET /admin/shipments:', error);
+      console.error('GreÅ¡ka GET /admin/shipments:', error);
 
       return res.status(500).json({
         message: apiText(
           req,
-          'Greška pri dohvaćanju aktivnih tereta.',
+          'GreÅ¡ka pri dohvaÄ‡anju aktivnih tereta.',
           'Failed to load active shipments.'
         ),
       });
@@ -3900,7 +3900,7 @@ app.delete('/admin/shipments/:id', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Objava nije pronađena.',
+          'Objava nije pronaÄ‘ena.',
           'The listing was not found.'
         ),
       });
@@ -3912,7 +3912,7 @@ if (
   return res.status(400).json({
     message: apiText(
       req,
-      'Nije moguće obrisati objavu za koju je već plaćena naknada.',
+      'Nije moguÄ‡e obrisati objavu za koju je veÄ‡ plaÄ‡ena naknada.',
       'A listing with a paid service fee cannot be deleted.'
     ),
   });
@@ -3946,12 +3946,12 @@ if (
       ),
     });
   } catch (error) {
-    console.error('Greška DELETE /admin/shipments/:id:', error);
+    console.error('GreÅ¡ka DELETE /admin/shipments/:id:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -3963,7 +3963,7 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-          'Samo naručitelj može ukloniti objavu iz povijesti.',
+          'Samo naruÄitelj moÅ¾e ukloniti objavu iz povijesti.',
           'Only the sender can remove a listing from history.'
         ),
       });
@@ -3979,7 +3979,7 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
     return res.status(404).json({
       message: apiText(
         req,
-        'Teret nije pronađen.',
+        'Teret nije pronaÄ‘en.',
         'Shipment not found.'
       ),
     });
@@ -4004,21 +4004,21 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
      const canHide =
        status === 'completed' ||
        status === 'zavrseno' ||
-       status === 'završeno' ||
+       status === 'zavrÅ¡eno' ||
        status === 'licitacija_zavrsena' ||
-       status === 'licitacija završena' ||
+       status === 'licitacija zavrÅ¡ena' ||
        status === 'expired' ||
        status === 'isteklo' ||
        status === 'withdrawn' ||
        status === 'povuceno' ||
-       status === 'povučeno' ||
+       status === 'povuÄeno' ||
        auctionEnded;
 
     if (!canHide) {
      return res.status(400).json({
        message: apiText(
          req,
-         'Samo završene, istekle ili povučene objave mogu se ukloniti iz povijesti.',
+         'Samo zavrÅ¡ene, istekle ili povuÄene objave mogu se ukloniti iz povijesti.',
          'Only completed, expired or withdrawn listings can be removed from history.'
        ),
      });
@@ -4038,12 +4038,12 @@ app.put('/shipments/:id/hide', authMiddleware, (req, res) => {
       ),
     });
  } catch (error) {
-   console.error('Greška PUT /shipments/:id/hide:', error);
+   console.error('GreÅ¡ka PUT /shipments/:id/hide:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -4055,7 +4055,7 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
     return res.status(403).json({
       message: apiText(
         req,
-        'Samo naručitelj može ponovno objaviti teret.',
+        'Samo naruÄitelj moÅ¾e ponovno objaviti teret.',
         'Only the sender can repost a shipment.'
       ),
     });
@@ -4073,7 +4073,7 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Teret nije pronađen.',
+          'Teret nije pronaÄ‘en.',
           'Shipment not found.'
         ),
       });
@@ -4100,7 +4100,7 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
      return res.status(400).json({
        message: apiText(
          req,
-         'Teret se može ponovno objaviti samo ako nije bilo ponuda.',
+         'Teret se moÅ¾e ponovno objaviti samo ako nije bilo ponuda.',
          'A shipment can only be reposted if it had no offers.'
        ),
      });
@@ -4133,7 +4133,7 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
      return res.status(409).json({
        message: apiText(
          req,
-         'Ovaj teret je već ponovno objavljen i licitacija je još aktivna.',
+         'Ovaj teret je veÄ‡ ponovno objavljen i licitacija je joÅ¡ aktivna.',
          'This shipment has already been reposted and the auction is still active.'
        ),
        shipmentId: existingActiveRepost.id,
@@ -4238,12 +4238,12 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
       shipment: newShipment,
     });
  } catch (error) {
-   console.error('Greška /shipments/:id/repost:', error);
+   console.error('GreÅ¡ka /shipments/:id/repost:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -4265,7 +4265,7 @@ app.get('/shipments/:id', authMiddleware, (req, res) => {
      return res.status(404).json({
        message: apiText(
          req,
-         'Teret nije pronađen.',
+         'Teret nije pronaÄ‘en.',
          'Shipment not found.'
        ),
      });
@@ -4303,7 +4303,7 @@ const offersCount = bidHistory.length;
         Number(o.shipmentId) === Number(shipment.id) &&
         (o.status === 'accepted' ||
           o.status === 'prihvaceno' ||
-          o.status === 'prihvaćeno')
+          o.status === 'prihvaÄ‡eno')
     );
 
     const senderUser = users.find(
@@ -4336,7 +4336,7 @@ const senderRating = senderUser
 
     const isCompleted =
       statusText === 'zavrseno' ||
-      statusText === 'završeno' ||
+      statusText === 'zavrÅ¡eno' ||
       statusText === 'completed';
 
     let ratingTargetUserId = null;
@@ -4355,7 +4355,7 @@ const senderRating = senderUser
       ratingTargetUserId = Number(shipment.senderId);
       ratingTargetLabel = apiText(
         req,
-        'naručitelja',
+        'naruÄitelja',
         'sender',
       );
     }
@@ -4446,12 +4446,12 @@ broj_ponuda: offersCount,
     acceptedOffer.commissionPaid !== true,
     });
  } catch (error) {
-   console.error('Greška /shipments/:id:', error);
+   console.error('GreÅ¡ka /shipments/:id:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -4470,7 +4470,7 @@ app.get('/shipments/:id/bid-history', authMiddleware, (req, res) => {
      return res.status(404).json({
        message: apiText(
          req,
-         'Teret nije pronađen.',
+         'Teret nije pronaÄ‘en.',
          'Shipment not found.'
        ),
      });
@@ -4541,18 +4541,18 @@ const isAdmin = currentUser?.isAdmin === true;
      myOfferBadge:
        myOffer && lowestOffer !== null
          ? toNumber(myOffer.amount, 0) === toNumber(lowestOffer, 0)
-           ? apiText(req, 'Najniža', 'Lowest')
-           : apiText(req, 'Nadmašena', 'Outbid')
+           ? apiText(req, 'NajniÅ¾a', 'Lowest')
+           : apiText(req, 'NadmaÅ¡ena', 'Outbid')
          : null,
       bidHistory,
     });
  } catch (error) {
-   console.error('Greška /shipments/:id/bid-history:', error);
+   console.error('GreÅ¡ka /shipments/:id/bid-history:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -4566,7 +4566,7 @@ app.put('/offers/:id/hide', authMiddleware, (req, res) => {
      return res.status(403).json({
        message: apiText(
          req,
-         'Samo prijevoznik može ukloniti ponudu iz povijesti.',
+         'Samo prijevoznik moÅ¾e ukloniti ponudu iz povijesti.',
          'Only the carrier can remove an offer from history.'
        ),
      });
@@ -4582,7 +4582,7 @@ app.put('/offers/:id/hide', authMiddleware, (req, res) => {
      return res.status(404).json({
        message: apiText(
          req,
-         'Ponuda nije pronađena.',
+         'Ponuda nije pronaÄ‘ena.',
          'Offer not found.'
        ),
      });
@@ -4611,12 +4611,12 @@ app.put('/offers/:id/hide', authMiddleware, (req, res) => {
      ),
    });
  } catch (error) {
-   console.error('Greška /offers/:id/hide:', error);
+   console.error('GreÅ¡ka /offers/:id/hide:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -4629,7 +4629,7 @@ app.post('/offers', authMiddleware, (req, res) => {
      return res.status(403).json({
        message: apiText(
          req,
-         'Samo prijevoznik može slati ponude.',
+         'Samo prijevoznik moÅ¾e slati ponude.',
          'Only the carrier can submit offers.'
        ),
      });
@@ -4649,12 +4649,12 @@ app.post('/offers', authMiddleware, (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-    'Ne možete slati nove ponude jer prethodno niste platili naknadu za uslugu. Vaš pristup budućim licitacijama je blokiran.',
+    'Ne moÅ¾ete slati nove ponude jer prethodno niste platili naknadu za uslugu. VaÅ¡ pristup buduÄ‡im licitacijama je blokiran.',
     'You cannot submit new offers because a previous service fee was not paid. Your access to future auctions has been blocked.'
         ),
       });
     }
-    const currency = req.body.currency || '€';
+    const currency = req.body.currency || 'â‚¬';
     const shipmentId = req.body.shipmentId || req.body.shipment_id;
     const amount = req.body.amount || req.body.price;
 const offerMessage = normalizeString(
@@ -4664,7 +4664,7 @@ const offerMessage = normalizeString(
 const forbiddenContactPattern =
   /(\+?\d[\d\s\-\/().]{6,}\d)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(whatsapp|viber|telegram|signal|messenger|facebook|instagram|gmail|mail|email|e-mail|nazovi|zovi|javi se|kontaktiraj|kontakt|mobitel|telefon|broj)/i;
 const numberWordsPattern =
-  /\b(nula|jedan|jedna|dva|dvije|tri|četiri|cetiri|pet|šest|sest|sedam|osam|devet|zero|one|two|three|four|five|six|seven|eight|nine)([\s,.\-]+(nula|jedan|jedna|dva|dvije|tri|četiri|cetiri|pet|šest|sest|sedam|osam|devet|zero|one|two|three|four|five|six|seven|eight|nine)){5,}\b/i;
+  /\b(nula|jedan|jedna|dva|dvije|tri|Äetiri|cetiri|pet|Å¡est|sest|sedam|osam|devet|zero|one|two|three|four|five|six|seven|eight|nine)([\s,.\-]+(nula|jedan|jedna|dva|dvije|tri|Äetiri|cetiri|pet|Å¡est|sest|sedam|osam|devet|zero|one|two|three|four|five|six|seven|eight|nine)){5,}\b/i;
 if (
   forbiddenContactPattern.test(offerMessage) ||
   numberWordsPattern.test(offerMessage)
@@ -4672,7 +4672,7 @@ if (
   return res.status(400).json({
     message: apiText(
       req,
-      'Poruka ponude ne smije sadržavati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
+      'Poruka ponude ne smije sadrÅ¾avati kontakt podatke, brojeve telefona, email adrese ili pozive na dogovor izvan aplikacije.',
       'The offer message must not contain contact details, phone numbers, email addresses, or invitations to arrange transport outside the app.',
     ),
   });
@@ -4692,7 +4692,7 @@ if (
      return res.status(404).json({
        message: apiText(
          req,
-         'Teret nije pronađen.',
+         'Teret nije pronaÄ‘en.',
          'Shipment not found.',
        ),
      });
@@ -4702,7 +4702,7 @@ if (
       return res.status(400).json({
         message: apiText(
           req,
-          'Na ovaj teret više nije moguće slati ponude.',
+          'Na ovaj teret viÅ¡e nije moguÄ‡e slati ponude.',
           'Offers can no longer be submitted for this shipment.',
         ),
       });
@@ -4720,7 +4720,7 @@ if (
        return res.status(400).json({
          message: apiText(
            req,
-           'Licitacija je završena. Nije više moguće slati ponude za ovaj teret.',
+           'Licitacija je zavrÅ¡ena. Nije viÅ¡e moguÄ‡e slati ponude za ovaj teret.',
            'The auction has ended. Offers can no longer be submitted for this shipment.',
          ),
        });
@@ -4730,14 +4730,14 @@ if (
     const existingAcceptedOffer = offers.find(
       (o) =>
         Number(o.shipmentId) === Number(shipment.id) &&
-        (o.status === 'accepted' || o.status === 'prihvaceno' || o.status === 'prihvaćeno')
+        (o.status === 'accepted' || o.status === 'prihvaceno' || o.status === 'prihvaÄ‡eno')
     );
 
     if (existingAcceptedOffer) {
      return res.status(400).json({
        message: apiText(
          req,
-         'Ponuda je već prihvaćena za ovaj teret.',
+         'Ponuda je veÄ‡ prihvaÄ‡ena za ovaj teret.',
          'An offer has already been accepted for this shipment.',
        ),
      });
@@ -4770,7 +4770,7 @@ if (
         return res.status(400).json({
           message: apiText(
             req,
-            `Nova ponuda mora biti najmanje 5 ${currency} niža od trenutno najniže ponude.`,
+            `Nova ponuda mora biti najmanje 5 ${currency} niÅ¾a od trenutno najniÅ¾e ponude.`,
             `The new offer must be at least 5 ${currency} lower than the current lowest offer.`,
           ),
         });
@@ -4780,7 +4780,7 @@ if (
           return res.status(400).json({
             message: apiText(
               req,
-              'Nova ponuda mora biti niža ili jednaka vašoj prethodnoj ponudi.',
+              'Nova ponuda mora biti niÅ¾a ili jednaka vaÅ¡oj prethodnoj ponudi.',
               'The new offer must be lower than or equal to your previous offer.',
             ),
           });
@@ -4791,7 +4791,7 @@ if (
           return res.status(400).json({
             message: apiText(
               req,
-              `Minimalno sniženje ponude je 5 ${currency}.`,
+              `Minimalno sniÅ¾enje ponude je 5 ${currency}.`,
               `The minimum offer reduction is 5 ${currency}.`,
             ),
           });
@@ -4820,13 +4820,13 @@ if (
       writeJson(offersFile, offers);
 const updatedOfferNotificationTitle = t(
   shipment.senderId,
-  'Ponuda ažurirana',
+  'Ponuda aÅ¾urirana',
   'Offer updated',
 );
 
 const updatedOfferNotificationMessage = t(
   shipment.senderId,
-  'Prijevoznik je ažurirao svoju ponudu za vaš teret.',
+  'Prijevoznik je aÅ¾urirao svoju ponudu za vaÅ¡ teret.',
   'A carrier has updated their offer for your shipment.',
 );
       addNotification({
@@ -4858,7 +4858,7 @@ sendPushNotificationToUser(
      return res.json({
        message: apiText(
          req,
-         'Ponuda je uspješno ažurirana.',
+         'Ponuda je uspjeÅ¡no aÅ¾urirana.',
          'The offer was updated successfully.',
        ),
        offer: existingMyOffer,
@@ -4898,7 +4898,7 @@ const notificationTitle = t(
 
 const notificationMessage = t(
   shipment.senderId,
-  'Zaprimili ste novu ponudu za vaš teret.',
+  'Zaprimili ste novu ponudu za vaÅ¡ teret.',
   'You have received a new offer for your shipment.',
 );
     addNotification({
@@ -4930,18 +4930,18 @@ const notificationMessage = t(
     res.status(201).json({
       message: apiText(
         req,
-        'Ponuda je uspješno poslana.',
+        'Ponuda je uspjeÅ¡no poslana.',
         'The offer was submitted successfully.',
       ),
       offer: newOffer,
     });
     } catch (error) {
-      console.error('Greška /offers POST:', error);
+      console.error('GreÅ¡ka /offers POST:', error);
 
       res.status(500).json({
         message: apiText(
           req,
-          'Greška na serveru.',
+          'GreÅ¡ka na serveru.',
           'Server error.',
         ),
       });
@@ -4954,7 +4954,7 @@ app.get('/my-offers', authMiddleware, (req, res) => {
       return res.status(403).json({
         message: apiText(
           req,
-          'Samo prijevoznik može vidjeti svoje ponude.',
+          'Samo prijevoznik moÅ¾e vidjeti svoje ponude.',
           'Only a carrier can view their offers.',
         ),
       });
@@ -5019,8 +5019,8 @@ app.get('/my-offers', authMiddleware, (req, res) => {
      myOfferBadge:
        lowestOffer !== null
          ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
-           ? apiText(req, 'Najniža', 'Lowest')
-           : apiText(req, 'Nadmašena', 'Outbid')
+           ? apiText(req, 'NajniÅ¾a', 'Lowest')
+           : apiText(req, 'NadmaÅ¡ena', 'Outbid')
          : null,
 
       shipment: shipment
@@ -5037,11 +5037,11 @@ app.get('/my-offers', authMiddleware, (req, res) => {
 
     res.json(myOffers);
   } catch (error) {
-    console.error('Greška /my-offers:', error);
+    console.error('GreÅ¡ka /my-offers:', error);
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.',
       ),
     });
@@ -5060,7 +5060,7 @@ app.get('/shipments/:id/offers', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Teret nije pronađen.',
+          'Teret nije pronaÄ‘en.',
           'Shipment not found.',
         ),
       });
@@ -5105,11 +5105,11 @@ app.get('/shipments/:id/offers', authMiddleware, (req, res) => {
 
     res.json(shipmentOffers);
   } catch (error) {
-    console.error('Greška /shipments/:id/offers:', error);
+    console.error('GreÅ¡ka /shipments/:id/offers:', error);
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.',
       ),
     });
@@ -5125,7 +5125,7 @@ if (req.user.role !== 'sender') {
  return res.status(403).json({
    message: apiText(
      req,
-     'Samo naručitelj može prihvatiti ponudu.',
+     'Samo naruÄitelj moÅ¾e prihvatiti ponudu.',
      'Only the sender can accept an offer.',
    ),
  });
@@ -5137,7 +5137,7 @@ const offers = readJson(offersFile);
       return res.status(404).json({
         message: apiText(
           req,
-          'Ponuda nije pronađena.',
+          'Ponuda nije pronaÄ‘ena.',
           'Offer not found.',
         ),
       });
@@ -5148,7 +5148,7 @@ const offers = readJson(offersFile);
       return res.status(404).json({
         message: apiText(
           req,
-          'Teret nije pronađen.',
+          'Teret nije pronaÄ‘en.',
           'Shipment not found.',
         ),
       });
@@ -5170,20 +5170,20 @@ const offers = readJson(offersFile);
     const canAcceptOffer =
       shipmentStatus === 'aktivan' ||
       shipmentStatus === 'licitacija_zavrsena' ||
-      shipmentStatus === 'licitacija završena';
+      shipmentStatus === 'licitacija zavrÅ¡ena';
 
     if (!canAcceptOffer) {
       return res.status(400).json({
         message: apiText(
           req,
-          'Ponudu više nije moguće prihvatiti za ovaj teret.',
+          'Ponudu viÅ¡e nije moguÄ‡e prihvatiti za ovaj teret.',
           'An offer can no longer be accepted for this shipment.',
         ),
       });
     }
 if (
   shipmentStatus === 'licitacija_zavrsena' ||
-  shipmentStatus === 'licitacija završena'
+  shipmentStatus === 'licitacija zavrÅ¡ena'
 ) {
   const selectionDeadline =
     new Date(shipment.selectionDeadlineAt || 0).getTime();
@@ -5240,7 +5240,7 @@ const acceptedNotificationTitle = t(
 
 const acceptedNotificationMessage = t(
   offer.carrierId,
-  'Vaša ponuda je prihvaćena. Naknadu za uslugu morate platiti u roku od 24 sata putem Stripe Checkouta kako biste otključali kontakt podatke. Ako naknada ne bude plaćena, evidentirat će se neplaćanje. Nakon drugog neplaćanja bit ćete blokirani za slanje novih ponuda i sudjelovanje u budućim licitacijama.',
+  'VaÅ¡a ponuda je prihvaÄ‡ena. Naknadu za uslugu morate platiti u roku od 24 sata putem Stripe Checkouta kako biste otkljuÄali kontakt podatke. Ako naknada ne bude plaÄ‡ena, evidentirat Ä‡e se neplaÄ‡anje. Nakon drugog neplaÄ‡anja bit Ä‡ete blokirani za slanje novih ponuda i sudjelovanje u buduÄ‡im licitacijama.',
   'Your offer has been accepted. You must pay the service fee within 24 hours via Stripe Checkout to unlock the contact details. If the fee is not paid, a non-payment will be recorded. After the second non-payment, you will be blocked from submitting new offers and participating in future auctions.',
 );
     addNotification({
@@ -5266,7 +5266,7 @@ sendPushNotificationToUser(
 rejectedOffers.forEach((rejectedOffer) => {
 const rejectedNotificationTitle = t(
   rejectedOffer.carrierId,
-  'Licitacija je završena',
+  'Licitacija je zavrÅ¡ena',
   'Auction ended',
 );
 
@@ -5299,19 +5299,19 @@ const rejectedNotificationMessage = t(
   res.json({
     message: apiText(
       req,
-      'Ponuda je uspješno prihvaćena.',
+      'Ponuda je uspjeÅ¡no prihvaÄ‡ena.',
       'The offer was accepted successfully.'
     ),
     offer,
     shipment,
   });
  } catch (error) {
-   console.error('Greška /offers/:id/accept:', error);
+   console.error('GreÅ¡ka /offers/:id/accept:', error);
 
    res.status(500).json({
      message: apiText(
        req,
-       'Greška na serveru.',
+       'GreÅ¡ka na serveru.',
        'Server error.'
      ),
    });
@@ -5323,7 +5323,7 @@ app.post('/shipments/:id/pay-commission', authMiddleware, (req, res) => {
   return res.status(410).json({
     message: apiText(
       req,
-      'Plaćanje se sada izvršava isključivo preko Stripe Checkouta.',
+      'PlaÄ‡anje se sada izvrÅ¡ava iskljuÄivo preko Stripe Checkouta.',
       'Payments are now processed exclusively through Stripe Checkout.'
     ),
   });
@@ -5337,7 +5337,7 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
      return res.status(403).json({
        message: apiText(
          req,
-         'Samo naručitelj može potvrditi isporuku.',
+         'Samo naruÄitelj moÅ¾e potvrditi isporuku.',
          'Only the sender can confirm delivery.',
        ),
      });
@@ -5351,7 +5351,7 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Teret nije pronađen.',
+          'Teret nije pronaÄ‘en.',
           'Shipment not found.',
         ),
       });
@@ -5387,7 +5387,7 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
 
     const deliveryNotificationMessage = t(
       acceptedOffer.carrierId,
-      'Naručitelj je potvrdio da je prijevoz dogovoren.',
+      'NaruÄitelj je potvrdio da je prijevoz dogovoren.',
       'The sender confirmed that the transport was completed.',
     );
       addNotification({
@@ -5413,18 +5413,18 @@ app.post('/shipments/:id/confirm-delivery', authMiddleware, (req, res) => {
 res.json({
   message: apiText(
     req,
-    'Prijevoz je završen.',
+    'Prijevoz je zavrÅ¡en.',
     'The transport has been completed.',
   ),
   shipment,
 });
 } catch (error) {
-  console.error('Greška /shipments/:id/confirm-delivery:', error);
+  console.error('GreÅ¡ka /shipments/:id/confirm-delivery:', error);
 
   res.status(500).json({
     message: apiText(
       req,
-      'Greška na serveru.',
+      'GreÅ¡ka na serveru.',
       'Server error.',
     ),
   });
@@ -5457,7 +5457,7 @@ app.post('/ratings', authMiddleware, (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Ocjena mora biti između 1 i 5.',
+          'Ocjena mora biti izmeÄ‘u 1 i 5.',
           'The rating must be between 1 and 5.',
         ),
       });
@@ -5469,7 +5469,7 @@ app.post('/ratings', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Teret nije pronađen.',
+          'Teret nije pronaÄ‘en.',
           'Shipment not found.',
         ),
       });
@@ -5485,7 +5485,7 @@ app.post('/ratings', authMiddleware, (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Nema prihvaćene ponude za ovaj prijevoz.',
+          'Nema prihvaÄ‡ene ponude za ovaj prijevoz.',
           'There is no accepted offer for this transport.',
         ),
       });
@@ -5518,7 +5518,7 @@ app.post('/ratings', authMiddleware, (req, res) => {
       return res.status(400).json({
         message: apiText(
           req,
-          'Već ste ocijenili ovog korisnika za ovaj prijevoz.',
+          'VeÄ‡ ste ocijenili ovog korisnika za ovaj prijevoz.',
           'You have already rated this user for this transport.',
         ),
       });
@@ -5540,18 +5540,18 @@ app.post('/ratings', authMiddleware, (req, res) => {
     res.status(201).json({
       message: apiText(
         req,
-        'Ocjena je uspješno spremljena.',
+        'Ocjena je uspjeÅ¡no spremljena.',
         'The rating has been saved successfully.',
       ),
       rating: newRating,
     });
   } catch (error) {
-    console.error('Greška POST /ratings:', error);
+    console.error('GreÅ¡ka POST /ratings:', error);
 
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.',
       ),
     });
@@ -5595,12 +5595,12 @@ app.get('/users/:id/ratings', authMiddleware, (req, res) => {
       ratings: userRatings,
     });
   } catch (error) {
-    console.error('Greška GET /users/:id/ratings:', error);
+    console.error('GreÅ¡ka GET /users/:id/ratings:', error);
 
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.',
       ),
     });
@@ -5619,12 +5619,12 @@ app.get('/notifications', authMiddleware, (req, res) => {
 
     res.json(mine);
   } catch (error) {
-    console.error('Greška /notifications:', error);
+    console.error('GreÅ¡ka /notifications:', error);
 
     res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.',
       ),
     });
@@ -5644,7 +5644,7 @@ app.post('/notifications/:id/read', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Obavijest nije pronađena.',
+          'Obavijest nije pronaÄ‘ena.',
           'Notification not found.'
         ),
       });
@@ -5658,18 +5658,18 @@ app.post('/notifications/:id/read', authMiddleware, (req, res) => {
     return res.json({
       message: apiText(
         req,
-        'Obavijest je označena kao pročitana.',
+        'Obavijest je oznaÄena kao proÄitana.',
         'The notification has been marked as read.'
       ),
       notification,
     });
   } catch (error) {
-    console.error('Greška POST /notifications/:id/read:', error);
+    console.error('GreÅ¡ka POST /notifications/:id/read:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -5694,18 +5694,18 @@ app.delete('/notifications/read', authMiddleware, (req, res) => {
     return res.json({
       message: apiText(
         req,
-        'Pročitane obavijesti su obrisane.',
+        'ProÄitane obavijesti su obrisane.',
         'Read notifications have been deleted.'
       ),
       deletedCount,
     });
   } catch (error) {
-    console.error('Greška DELETE /notifications/read:', error);
+    console.error('GreÅ¡ka DELETE /notifications/read:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -5726,7 +5726,7 @@ app.delete('/notifications/:id', authMiddleware, (req, res) => {
       return res.status(404).json({
         message: apiText(
           req,
-          'Obavijest nije pronađena.',
+          'Obavijest nije pronaÄ‘ena.',
           'Notification not found.'
         ),
       });
@@ -5747,12 +5747,12 @@ app.delete('/notifications/:id', authMiddleware, (req, res) => {
       notification: deletedNotification,
     });
   } catch (error) {
-    console.error('Greška DELETE /notifications/:id:', error);
+    console.error('GreÅ¡ka DELETE /notifications/:id:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -5781,12 +5781,12 @@ app.delete('/notifications', authMiddleware, (req, res) => {
       deletedCount,
     });
   } catch (error) {
-    console.error('Greška DELETE /notifications:', error);
+    console.error('GreÅ¡ka DELETE /notifications:', error);
 
     return res.status(500).json({
       message: apiText(
         req,
-        'Greška na serveru.',
+        'GreÅ¡ka na serveru.',
         'Server error.'
       ),
     });
@@ -5803,6 +5803,6 @@ setInterval(
   AUCTION_CHECK_INTERVAL_MS
 );
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ TeReT backend radi na portu ${PORT}`);
+  console.log(`âœ… TeReT backend radi na portu ${PORT}`);
 });
 
