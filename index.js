@@ -2657,7 +2657,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
-    latestAppVersionCode: 23,
+    latestAppVersionCode: 24,
     emailVerified: user.emailVerified === true,
    ...(user.isAdmin === true
      ? {
