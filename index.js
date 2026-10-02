@@ -1486,11 +1486,21 @@ if (carrier) {
               'Payment deadline expired',
             );
 
-          const carrierMessage = t(
-            shipment.acceptedCarrierId,
-            'Niste platili naknadu za uslugu u roku od 24 sata. Prijevoz je otkazan i više ne možete slati ponude niti sudjelovati u novim licitacijama.',
-            'You did not pay the service fee within 24 hours. The transport has been cancelled and you can no longer submit offers or participate in new auctions.',
-          );
+       const carrierNoPaymentCount =
+         Number(carrier?.carrierNoPaymentCount || 0);
+
+       const carrierMessage =
+         carrierNoPaymentCount >= 2
+           ? t(
+               shipment.acceptedCarrierId,
+               'Niste platili naknadu za uslugu u roku od 24 sata. Ovo je drugo evidentirano neplaćanje. Blokirani ste za slanje novih ponuda i sudjelovanje u budućim licitacijama.',
+               'You did not pay the service fee within 24 hours. This is your second recorded non-payment. You are now blocked from submitting new offers and participating in future auctions.',
+             )
+           : t(
+               shipment.acceptedCarrierId,
+               'Niste platili naknadu za uslugu u roku od 24 sata. Ovo je prvo evidentirano neplaćanje. Ako se neplaćanje ponovi, bit ćete blokirani za slanje novih ponuda i sudjelovanje u budućim licitacijama.',
+               'You did not pay the service fee within 24 hours. This is your first recorded non-payment. If it happens again, you will be blocked from submitting new offers and participating in future auctions.',
+             );
 
             addNotification({
               userId: shipment.acceptedCarrierId,
@@ -4655,7 +4665,7 @@ app.post('/offers', authMiddleware, (req, res) => {
 
     if (
       currentCarrier &&
-      Number(currentCarrier.carrierNoPaymentCount || 0) >= 1
+      Number(currentCarrier.carrierNoPaymentCount || 0) >= 2
     ) {
       return res.status(403).json({
         message: apiText(
@@ -5268,9 +5278,8 @@ const acceptedNotificationTitle = t(
 
 const acceptedNotificationMessage = t(
   offer.carrierId,
-
-  'Vaša ponuda je prihvaćena. Naknadu za uslugu morate platiti u roku od 24 sata putem Stripe Checkouta kako biste otključali kontakt podatke. Ako naknada ne bude plaćena u roku, nećete moći slati nove ponude niti sudjelovati u budućim licitacijama.',
-  'Your offer has been accepted. You must pay the service fee within 24 hours via Stripe Checkout to unlock the contact details. If the fee is not paid within the deadline, you will not be able to submit new offers or participate in future auctions.',
+  'Vaša ponuda je prihvaćena. Naknadu za uslugu morate platiti u roku od 24 sata putem Stripe Checkouta kako biste otključali kontakt podatke. Ako naknada ne bude plaćena, evidentirat će se neplaćanje. Nakon drugog neplaćanja bit ćete blokirani za slanje novih ponuda i sudjelovanje u budućim licitacijama.',
+  'Your offer has been accepted. You must pay the service fee within 24 hours via Stripe Checkout to unlock the contact details. If the fee is not paid, a non-payment will be recorded. After the second non-payment, you will be blocked from submitting new offers and participating in future auctions.',
 );
     addNotification({
       userId: offer.carrierId,
