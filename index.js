@@ -2983,33 +2983,12 @@ if (forbiddenTransportAdPattern.test(shipmentText)) {
     }
 
     const createdAt = nowIso();
-const startingPriceRaw =
-  req.body.startingPrice ?? req.body.pocetna_cijena;
 
-const startingPrice =
-  startingPriceRaw === undefined ||
-  startingPriceRaw === null ||
-  String(startingPriceRaw).trim() === ''
-    ? null
-    : Number(String(startingPriceRaw).replace(',', '.'));
-
-if (
-  startingPrice !== null &&
-  (!Number.isFinite(startingPrice) || startingPrice <= 0)
-) {
-  return res.status(400).json({
-    message: apiText(
-      req,
-      'Početna cijena mora biti veća od 0.',
-      'The starting price must be greater than 0.'
-    ),
-  });
-}
     const newShipment = {
       id: shipmentId,
       senderId: Number(req.user.id),
       status: 'aktivan',
-      startingPrice,
+
       region: sender.region || 'Evropa',
 
       naziv_tereta: nazivTereta,
@@ -4542,7 +4521,7 @@ const isAdmin = currentUser?.isAdmin === true;
     res.json({
       shipmentId: shipment.id,
       shipmentStatus: shipment.status,
-      startingPrice: toNumber(shipment.startingPrice, null),
+
       isSenderOwner: isSenderOwner,
       offersCount: bidHistory.length,
       lowestOffer,
@@ -4772,24 +4751,7 @@ if (
     );
 
     const numericAmount = toNumber(amount);
-const shipmentStartingPrice = toNumber(
-  shipment.startingPrice,
-  null
-);
 
-if (
-  shipmentStartingPrice !== null &&
-  shipmentStartingPrice > 0 &&
-  numericAmount > shipmentStartingPrice
-) {
-  return res.status(400).json({
-    message: apiText(
-      req,
-      `Ponuda ne može biti veća od početne cijene ${shipmentStartingPrice} ${currency}.`,
-      `The offer cannot exceed the starting price of ${shipmentStartingPrice} ${currency}.`
-    ),
-  });
-}
     if (existingMyOffer) {
     const otherActiveOffers = offers.filter(
       (o) =>
