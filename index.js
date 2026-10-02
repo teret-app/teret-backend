@@ -3085,7 +3085,12 @@ if (forbiddenTransportAdPattern.test(shipmentText)) {
 
       treba_pomoc_vozaca:
         req.body.treba_pomoc_vozaca === true,
+podlijeze_carini:
+  req.body.podlijeze_carini === true,
 
+posjeduje_carinske_dokumente:
+  req.body.podlijeze_carini === true &&
+  req.body.posjeduje_carinske_dokumente === true,
       broj_telefona: normalizeString(
         req.body.broj_telefona || sender.phone
       ),
