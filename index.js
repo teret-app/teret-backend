@@ -1185,7 +1185,8 @@ function getTotalBidCount(shipment, offers) {
   return offers
     .filter(
       (offer) =>
-        Number(offer.shipmentId) === Number(shipment.id)
+        Number(offer.shipmentId) === Number(shipment.id) &&
+        offer.status !== 'rejected'
     )
     .reduce(
       (total, offer) =>
@@ -1236,15 +1237,27 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
 
   allBids.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  const activeBids = allBids.filter((bid) => bid.status !== 'rejected');
-  const lowestAmount =
-    activeBids.length > 0
-      ? Math.min(...activeBids.map((bid) => toNumber(bid.amount, 0)))
-      : null;
+const activeOffers = shipmentOffers.filter(
+  (offer) => offer.status !== 'rejected'
+);
 
+const lowestAmount =
+  activeOffers.length > 0
+    ? Math.min(
+        ...activeOffers.map((offer) => toNumber(offer.amount, 0))
+      )
+    : null;
   return allBids.map((bid) => ({
     ...bid,
-    isLowest: lowestAmount !== null && toNumber(bid.amount, 0) === lowestAmount,
+  isLowest:
+    bid.status !== 'rejected' &&
+    lowestAmount !== null &&
+    activeOffers.some(
+      (offer) =>
+        Number(offer.id) === Number(bid.offerId) &&
+        toNumber(offer.amount, 0) === lowestAmount &&
+        toNumber(bid.amount, 0) === lowestAmount
+    ),
   }));
 }
 
@@ -2657,7 +2670,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
-    latestAppVersionCode: 24,
+    latestAppVersionCode: 25,
     emailVerified: user.emailVerified === true,
    ...(user.isAdmin === true
      ? {
@@ -5122,7 +5135,62 @@ app.get('/shipments/:id/offers', authMiddleware, (req, res) => {
 });
 
 
+// ADMIN – poništavanje pojedinačne ponude
+app.put(
+  '/admin/offers/:id/cancel',
+  authMiddleware,
+  adminMiddleware,
+  (req, res) => {
+    try {
+      const offers = readJson(offersFile);
 
+      const offer = offers.find(
+        (o) => Number(o.id) === Number(req.params.id)
+      );
+
+      if (!offer) {
+        return res.status(404).json({
+          message: 'Ponuda nije pronađena.'
+        });
+      }
+
+      if (
+        offer.status === 'accepted' ||
+        offer.status === 'prihvaceno' ||
+        offer.status === 'prihvaćeno'
+      ) {
+        return res.status(400).json({
+          message: 'Prihvaćenu ponudu nije moguće poništiti.'
+        });
+      }
+
+      if (offer.status === 'rejected') {
+        return res.status(400).json({
+          message: 'Ponuda je već poništena ili odbijena.'
+        });
+      }
+
+      offer.status = 'rejected';
+      offer.cancelledByAdmin = true;
+      offer.cancelledAt = nowIso();
+      offer.cancelledByAdminId = req.user.id;
+
+      writeJson(offersFile, offers);
+
+      return res.json({
+        success: true,
+        message: 'Ponuda je uspješno poništena.'
+      });
+
+    } catch (error) {
+      console.error('Greška pri poništavanju ponude:', error);
+
+      return res.status(500).json({
+        message: 'Greška na serveru.'
+      });
+    }
+  }
+);
 app.post('/offers/:id/accept', authMiddleware, (req, res) => {
      try {
     const shipments = readJson(shipmentsFile);
