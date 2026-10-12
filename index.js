@@ -909,8 +909,9 @@ function addOutbidNotifications({ offers, shipment, currentCarrierId, currentOff
   const activeOffers = offers.filter(
     (o) =>
       Number(o.shipmentId) === Number(shipment.id) &&
-      o.status !== 'rejected' &&
-      o.status !== 'accepted'
+     o.status !== 'rejected' &&
+     o.status !== 'cancelled_by_admin' &&
+     o.status !== 'accepted'
   );
 
   if (activeOffers.length < 2) return;
@@ -1186,7 +1187,8 @@ function getTotalBidCount(shipment, offers) {
     .filter(
       (offer) =>
         Number(offer.shipmentId) === Number(shipment.id) &&
-        offer.status !== 'rejected'
+        offer.status !== 'rejected' &&
+        offer.status !== 'cancelled_by_admin'
     )
     .reduce(
       (total, offer) =>
@@ -1195,9 +1197,17 @@ function getTotalBidCount(shipment, offers) {
     );
 }
 function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [] }) {
-  const shipmentOffers = offers.filter(
-    (o) => Number(o.shipmentId) === Number(shipment.id)
-  );
+const shipmentOffers = offers.filter(
+  (o) =>
+    Number(o.shipmentId) === Number(shipment.id) &&
+    (
+      viewer.isAdmin === true ||
+      (
+        o.status !== 'rejected' &&
+        o.status !== 'cancelled_by_admin'
+      )
+    )
+);
 
   const allBids = [];
 
@@ -1238,9 +1248,10 @@ function buildBidHistoryForViewer({ shipment, offers, users, viewer, ratings = [
   allBids.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
 const activeOffers = shipmentOffers.filter(
-  (offer) => offer.status !== 'rejected'
+  (offer) =>
+    offer.status !== 'rejected' &&
+    offer.status !== 'cancelled_by_admin'
 );
-
 const lowestAmount =
   activeOffers.length > 0
     ? Math.min(
@@ -1249,8 +1260,9 @@ const lowestAmount =
     : null;
   return allBids.map((bid) => ({
     ...bid,
-  isLowest:
-    bid.status !== 'rejected' &&
+isLowest:
+  bid.status !== 'rejected' &&
+  bid.status !== 'cancelled_by_admin' &&
     lowestAmount !== null &&
     activeOffers.some(
       (offer) =>
@@ -1329,11 +1341,12 @@ function cleanupExpiredShipments() {
       shipment.updatedAt = nowIso();
       shipmentsChanged = true;
 
-      const shipmentOffers = offers.filter(
-        (offer) =>
-          Number(offer.shipmentId) === Number(shipment.id) &&
-          offer.status !== 'rejected'
-      );
+   const shipmentOffers = offers.filter(
+     (offer) =>
+       Number(offer.shipmentId) === Number(shipment.id) &&
+       offer.status !== 'rejected' &&
+       offer.status !== 'cancelled_by_admin'
+   );
 
       if (shipmentOffers.length > 0) {
         const notificationTitle = t(
@@ -1386,11 +1399,12 @@ function cleanupExpiredShipments() {
         Number.isFinite(selectionDeadline) &&
         selectionDeadline <= now
       ) {
-        const shipmentOffers = offers.filter(
-          (offer) =>
-            Number(offer.shipmentId) === Number(shipment.id) &&
-            offer.status !== 'rejected'
-        );
+     const shipmentOffers = offers.filter(
+       (offer) =>
+         Number(offer.shipmentId) === Number(shipment.id) &&
+         offer.status !== 'rejected' &&
+         offer.status !== 'cancelled_by_admin'
+     );
 
         shipment.status = 'zatvoreno_bez_odabira';
         shipment.closedAt = nowIso();
@@ -2670,7 +2684,7 @@ app.get('/me', authMiddleware, (req, res) => {
     phone: user.phone,
     role: user.role,
     isAdmin: user.isAdmin === true,
-    latestAppVersionCode: 25,
+    latestAppVersionCode: 26,
     emailVerified: user.emailVerified === true,
    ...(user.isAdmin === true
      ? {
@@ -3340,8 +3354,12 @@ app.get('/shipments', authMiddleware, (req, res) => {
     });
 
     const result = activeShipments.map((shipment) => {
-      const shipmentOffers = (offersByShipmentId.get(Number(shipment.id)) || [])
-        .filter((offer) => offer.status !== 'rejected');
+   const shipmentOffers = (offersByShipmentId.get(Number(shipment.id)) || [])
+     .filter(
+       (offer) =>
+         offer.status !== 'rejected' &&
+         offer.status !== 'cancelled_by_admin'
+     );
 
       const activeAmounts = shipmentOffers
         .map((offer) => toNumber(offer.amount, null))
@@ -3531,9 +3549,11 @@ app.get('/my-shipments', authMiddleware, (req, res) => {
         const shipmentOffers =
           offersByShipmentId.get(Number(shipment.id)) || [];
 
-        const validOffers = shipmentOffers.filter(
-          (offer) => offer.status !== 'rejected'
-        );
+       const validOffers = shipmentOffers.filter(
+         (offer) =>
+           offer.status !== 'rejected' &&
+           offer.status !== 'cancelled_by_admin'
+       );
 
         const lowestOffer =
           validOffers.length > 0
@@ -3810,7 +3830,8 @@ app.get(
           const shipmentOffers = offers.filter(
             (offer) =>
               Number(offer.shipmentId) === Number(shipment.id) &&
-              offer.status !== 'rejected'
+             offer.status !== 'rejected' &&
+             offer.status !== 'cancelled_by_admin'
           );
 const acceptedOffer = offers.find(
   (offer) =>
@@ -4111,7 +4132,8 @@ app.post('/shipments/:id/repost', authMiddleware, (req, res) => {
     const oldOffers = offers.filter(
       (o) =>
         Number(o.shipmentId) === Number(oldShipment.id) &&
-        o.status !== 'rejected'
+        o.status !== 'rejected' &&
+        o.status !== 'cancelled_by_admin'
     );
 
    if (oldOffers.length > 0) {
@@ -4300,7 +4322,11 @@ const bidHistory = buildBidHistoryForViewer({
   ratings,
 });
 
-const offersCount = bidHistory.length;
+const offersCount = bidHistory.filter(
+  (bid) =>
+    bid.status !== 'rejected' &&
+    bid.status !== 'cancelled_by_admin'
+).length;
     if (isCarrierRole(req.user.role)) {
       if (!Array.isArray(shipment.viewedBy)) {
         shipment.viewedBy = [];
@@ -4524,7 +4550,8 @@ const isAdmin = currentUser?.isAdmin === true;
     const activeOffers = offers.filter(
       (o) =>
         Number(o.shipmentId) === Number(shipment.id) &&
-        o.status !== 'rejected'
+        o.status !== 'rejected' &&
+        o.status !== 'cancelled_by_admin'
     );
 
     const lowestOffer =
@@ -4761,13 +4788,13 @@ if (
      });
     }
 
-    const existingMyOffer = offers.find(
-      (o) =>
-        Number(o.shipmentId) === Number(shipment.id) &&
-        Number(o.carrierId) === Number(req.user.id) &&
-        o.status !== 'rejected'
-    );
-
+  const existingMyOffer = offers.find(
+    (o) =>
+      Number(o.shipmentId) === Number(shipment.id) &&
+      Number(o.carrierId) === Number(req.user.id) &&
+      o.status !== 'rejected' &&
+      o.status !== 'cancelled_by_admin'
+  );
     const numericAmount = toNumber(amount);
 
     if (existingMyOffer) {
@@ -4775,8 +4802,9 @@ if (
       (o) =>
         Number(o.shipmentId) === Number(shipment.id) &&
         Number(o.carrierId) !== Number(req.user.id) &&
-        o.status !== 'rejected' &&
-        o.status !== 'accepted'
+      o.status !== 'rejected' &&
+      o.status !== 'accepted' &&
+      o.status !== 'cancelled_by_admin'
     );
 
     if (otherActiveOffers.length > 0) {
@@ -5008,34 +5036,37 @@ app.get('/my-offers', authMiddleware, (req, res) => {
 
 
         const shipment = shipments.find((s) => Number(s.id) === Number(offer.shipmentId));
-       const shipmentOffers = offers.filter(
-         (o) =>
-           Number(o.shipmentId) === Number(shipment?.id) &&
-           o.status !== 'rejected'
-       );
+     const shipmentOffers = offers.filter(
+       (o) =>
+         Number(o.shipmentId) === Number(shipment?.id) &&
+         o.status !== 'rejected' &&
+         o.status !== 'cancelled_by_admin'
+     );
 
        const lowestOffer =
          shipmentOffers.length > 0
            ? Math.min(...shipmentOffers.map((o) => toNumber(o.amount, 0)))
            : null;
-
+const isValidMyOffer =
+  offer.status !== 'rejected' &&
+  offer.status !== 'cancelled_by_admin';
     return {
       ...offer,
 
       lowestOffer,
 
-      myOfferIsLowest:
-        lowestOffer !== null
+    myOfferIsLowest:
+      isValidMyOffer && lowestOffer !== null
           ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
           : false,
 
       myOfferIsOutbid:
-        lowestOffer !== null
+        isValidMyOffer && lowestOffer !== null
           ? toNumber(offer.amount, 0) > toNumber(lowestOffer, 0)
           : false,
 
-     myOfferBadge:
-       lowestOffer !== null
+   myOfferBadge:
+     isValidMyOffer && lowestOffer !== null
          ? toNumber(offer.amount, 0) === toNumber(lowestOffer, 0)
            ? apiText(req, 'Najniža', 'Lowest')
            : apiText(req, 'Nadmašena', 'Outbid')
